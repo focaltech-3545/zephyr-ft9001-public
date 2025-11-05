@@ -1,0 +1,33 @@
+# Copyright (c) 2021, Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: ft9001_eval
+name: FOCALTECH FT9001-EVAL
+type: mcu
+arch: arm
+memory:
+  ram:
+    device: /soc/sram0
+  ram1:
+    device: /soc/sram1
+  ram2:
+    device: /soc/sram2
+  ram3:
+    device: /soc/sram3
+  ram4:
+    device: /soc/sram4
+  ramd0:
+    device: /soc/sramd0
+flash: 2048
+ram: 256
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+supported:
+  - uart
+  - spi
+  - usb
+  - gpio
+  - counter
+vendor: ft

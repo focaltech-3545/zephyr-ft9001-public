@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config RESET_FOCALTECH
+	bool "FT90 reset control"
+	default y
+	depends on SOC_FAMILY_FOCALTECH
+	help
+	  Enable driver for FOCALTECH Reset Clock Unit (RCU).

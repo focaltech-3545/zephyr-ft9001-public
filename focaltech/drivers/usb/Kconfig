@@ -1,0 +1,19 @@
+# USB configuration options
+
+# Copyright (c) 2016 Wind River Systems, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+
+if UDC_DRIVER
+
+module = UDC_DRIVER
+module-str = usb drv
+source "subsys/logging/Kconfig.template.log_config"
+
+#printk(INFO  "-------------------------------");
+
+rsource "./udc/Kconfig"
+
+
+
+endif # UDC_DRIVER

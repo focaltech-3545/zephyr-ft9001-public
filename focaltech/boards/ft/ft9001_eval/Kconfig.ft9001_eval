@@ -1,0 +1,10 @@
+# Copyright (c) 2024 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_FT9001_EVAL
+	bool "FT9001_EVAL"
+	select SOC_FT9001
+
+config FLASH_LOAD_OFFSET
+	default 0x1000
+

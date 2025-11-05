@@ -1,0 +1,36 @@
+# Copyright (c) 2023, Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config SPI_FOCALTECH
+	bool "FT90 MCU serial driver"
+	default y
+	depends on SOC_FAMILY_FOCALTECH
+	select USE_FOCALTECH_HAL_SPI
+	select SPI_SLAVE
+	help
+	  This option enables the UART driver for FOCALTECH family of processors.
+
+if SPI_FOCALTECH
+
+config SPI_FOCALTECH_INTERRUPT
+	bool "FOCALTECH MCU SPI Interrupt Support"
+	default y if SPI_ASYNC
+	help
+	  Enable the interrupt driven mode for SPI instances
+
+config SPI_FOCALTECH_DMA
+	bool "FOCALTECH MCU SPI DMA Support"
+	select DMA
+	help
+	  Use the DMA for SPI transfer
+	  that enable dma channels in their device tree node.
+
+config SPI_FOCALTECH_SLAVE
+	bool "Slave support [EXPERIMENTAL]"
+	select EXPERIMENTAL
+	help
+		Enables Driver SPI slave operations. Slave support depends
+		on the driver and the hardware it runs on.
+
+
+endif # SPI_FOCALTECH

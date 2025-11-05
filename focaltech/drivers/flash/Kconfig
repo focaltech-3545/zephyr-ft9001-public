@@ -1,0 +1,18 @@
+config FLASH_FT_FT90
+	bool "FT FLASH driver"
+	default y
+#	depends on DT_HAS_FT_FT90_FLASH_CONTROLER_ENABLED
+	select FLASH_HAS_DRIVER_ENABLED
+	select FLASH_HAS_EXPLICIT_ERASE
+	help
+	  Enable driver for FT90
+
+if FLASH_FT_FT90
+
+config FLASH_FT_FT90_INIT_PRIORITY
+	int
+	default 80
+	help
+	  Device driver initialization priority.
+
+endif

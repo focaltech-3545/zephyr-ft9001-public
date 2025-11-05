@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if SERIAL
+
+module = UART
+module-str = uart
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "./Kconfig.*"
+
+endif # SERIAL

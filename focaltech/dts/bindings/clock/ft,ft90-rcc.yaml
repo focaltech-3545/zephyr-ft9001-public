@@ -1,0 +1,17 @@
+# Copyright (c) 2022, Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Predefined  clock cells are available in
+  include/zephyr/dts-bindings/clock/ft90-clocks.h header files
+
+compatible: "ft,ft90-rcc"
+
+include: [clock-controller.yaml, base.yaml]
+
+properties:
+  "#clock-cells":
+    const: 1
+
+clock-cells:
+  - id

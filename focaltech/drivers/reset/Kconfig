@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if RESET
+
+module = RESET
+module-str = reset
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "./Kconfig.*"
+
+endif # RESET

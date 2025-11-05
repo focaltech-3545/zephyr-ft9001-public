@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if SPI
+
+module = TEST
+module-str = test
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "./Kconfig.*"
+
+endif # SPI

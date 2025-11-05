@@ -1,0 +1,12 @@
+# Copyright (c) 2021 Teslabs Engineering S.L.
+# SPDX-License-Identifier: Apache-2.0
+
+config WDT_FOCALTECH
+	bool "FT90 MCU WDT driver"
+	default y
+	depends on WATCHDOG
+	depends on SOC_FAMILY_FOCALTECH
+	select USE_FOCALTECH_HAL_WDT 
+	select HAS_WDT_DISABLE_AT_BOOT
+	help
+	  This option enables the WDT driver for FOCALTECH family of processors.

@@ -1,0 +1,49 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+description: |
+    The ft90 pin controller.
+
+compatible: "ft,ft90-pinctrl"
+include: base.yaml
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+child-binding:
+  child-binding:
+    include:
+      - name: pincfg-node.yaml
+        property-allowlist:
+          - drive-push-pull
+          - drive-open-drain
+          - bias-disable
+          - bias-pull-down
+          - bias-pull-up
+
+    properties:
+      pinmux:
+        required: true
+        type: array
+        description: |
+          An array of pins sharing the same group properties. The pins should
+          be defined using pre-defined macros or, alternatively.
+      slew-rate:
+        type: string
+        default: "max-speed-2mhz"
+        enum:
+          - "max-speed-10mhz"
+          - "max-speed-2mhz"
+          - "max-speed-50mhz"
+          - "max-speed-highest"
+        description: |
+          Set the maximum speed of a pin. This setting effectively limits the
+          slew rate of the output signal. Defaults to "max-speed-2mhz", the SoC
+          default. The max-speed-highest option may not be available on all SoC
+          variants. If selected and not available the 50 MHz maximum speed will
+          be used instead. Note that usage of max-speed-highest may require
+          enabling the I/O compensation cell (refer to the gd,gd32-afio binding
+          for more details).

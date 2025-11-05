@@ -1,0 +1,634 @@
+/*
+ * Copyright (c) 2025, Focaltech Systems CO.,Ltd
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <arm/armv7-m.dtsi>
+#include <freq.h>
+#include <mem.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/clock/ft9001-clocks.h>
+#include <zephyr/dt-bindings/reset/ft9001_reset.h>
+
+/ {
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        cpu0: cpu@0 {
+            device_type = "cpu";
+            compatible = "arm,cortex-m4f";
+            reg = <0>;
+            #address-cells = <1>;
+            #size-cells = <1>;
+            cpu-power-states = <&idle &suspend>;
+            mpu: mpu@e000ed90 {
+                compatible = "arm,armv7m-mpu";
+                reg = <0xe000ed90 0x40>;
+            };
+        };
+    };
+    power-states {
+
+            idle: idle {
+                compatible = "zephyr,power-state";
+	 			power-state-name = "runtime-idle";
+	 			min-residency-us = <5000>;
+	 			exit-latency-us = <400>;
+            };
+
+			suspend: suspend {
+				compatible = "zephyr,power-state";
+				power-state-name = "suspend-to-idle";
+				min-residency-us = <20000>;
+				exit-latency-us = <5000>;
+			};
+
+		};
+    soc {
+        sram0: memory@20000000 {
+            compatible = "mmio-sram";
+            reg = <0x20000000 DT_SIZE_K(224)>;
+        };
+        
+        sramd0: memory@1fff8000 {
+            compatible = "zephyr,memory-region", "mmio-sram";
+            reg = <0x1fff8000 DT_SIZE_K(32)>;
+            zephyr,memory-region = "DTCM";
+        };
+
+        rcc: rcc@40004000 {
+            compatible = "ft,ft90-rcc";
+            #clock-cells = <1>;
+            reg = <0x40004000 0x1000>;
+            status = "disabled";
+        };
+
+        rctl: reset@40004000 {
+            compatible = "ft,ft90-rctl";
+            #reset-cells = <1>;
+            reg = <0x40004000 0x1000>;
+            status = "disabled";
+        };
+
+        efm: flash-controller@40003000 {
+            compatible = "ft,ft90-flash-controller";
+            reg = <0x40003000 0x1000>;
+            #address-cells = <1>;
+            #size-cells = <1>;
+
+            flash0: flash@10000000 {
+                compatible = "ft,ft90-nv-flash", "soc-nv-flash";
+                reg = <0x10000000 0x200000>;
+                write-block-size = <1>;
+            };
+        };
+
+        usart0: usart@40013000 {
+            compatible = "ft,ft90-usart";
+            reg = <0x40013000 0x1000>;
+            interrupts = <32 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_UART0>;
+            resets = <&rctl FOCALTECH_RESET_UART0>;
+            status = "disabled";
+        };
+
+        usart1: usart@40014000 {
+            compatible = "ft,ft90-usart";
+            reg = <0x40014000 0x1000>;
+            interrupts = <33 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_UART1>;
+            resets = <&rctl FOCALTECH_RESET_UART1>;
+            status = "disabled";
+        };
+
+        usart2: usart@4001d000 {
+            compatible = "ft,ft90-usart";
+            reg = <0x4001d000 0x1000>;
+            interrupts = <61 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_UART2>;
+            resets = <&rctl FOCALTECH_RESET_UART2>;
+            status = "disabled";
+        };
+
+        dac0: dac@40021000 {
+            compatible = "ft,ft90-dac";
+            reg = <0x40021000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_DAC>;
+            resets = <&rctl FOCALTECH_RESET_DAC>;
+            interrupts = <21 0>;
+            num-channels = <2>;
+            status = "disabled";
+            #io-channel-cells = <1>;
+        };
+
+        i2c0: i2c@40017000 {
+            compatible = "ft,ft90-i2c";
+            reg = <0x40017000 0x1000>;
+            #address-cells = <1>;
+            #size-cells = <0>;
+            clock-frequency = <I2C_BITRATE_STANDARD>;
+            interrupts = <36 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_I2C0>;
+            resets = <&rctl FOCALTECH_RESET_I2C0>;
+            status = "disabled";
+        };
+
+        i2c1: i2c@4001b000 {
+            compatible = "ft,ft90-i2c";
+            reg = <0x4001b000 0x1000>;
+            #address-cells = <1>;
+            #size-cells = <0>;
+            clock-frequency = <I2C_BITRATE_STANDARD>;
+            interrupts = <59 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_I2C1>;
+            resets = <&rctl FOCALTECH_RESET_I2C1>;
+            status = "disabled";
+        };
+
+        spi0: spi@40010000 {
+            compatible = "ft,ft90-spi";
+            reg = <0x40010000 0x1000>;
+            interrupts = <26 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_SPI0>;
+            resets = <&rctl FOCALTECH_RESET_SPI0>;
+            status = "disabled";
+            #address-cells = <1>;
+            #size-cells = <0>;
+        };
+
+        spi1: spi@40011000 {
+            compatible = "ft,ft90-spi";
+            reg = <0x40011000 0x1000>;
+            interrupts = <27 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_SPI1>;
+            resets = <&rctl FOCALTECH_RESET_SPI1>;
+            status = "disabled";
+            #address-cells = <1>;
+            #size-cells = <0>;
+        };
+
+        spi2: spi@40012000 {
+            compatible = "ft,ft90-spi";
+            reg = <0x40012000 0x1000>;
+            interrupts = <28 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_SPI2>;
+            resets = <&rctl FOCALTECH_RESET_SPI2>;
+            status = "disabled";
+            #address-cells = <1>;
+            #size-cells = <0>;
+        };
+
+        adc0: adc@40020000 {
+            compatible = "ft,ft90-adc";
+            reg = <0x40020000 0x1000>;
+            interrupts = <20 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_ADC>;
+            resets = <&rctl FOCALTECH_RESET_ADC>;
+            channels = <17>;
+            status = "disabled";
+            #io-channel-cells = <1>;
+        };
+
+        ftcfg: ftcfg@40001000 {
+            compatible = "ft,ft90-ftcfg";
+            reg = <0x40001000 0x1000>;
+            status = "disabled";
+        };
+
+        pinctrl: pin-controller@40000000 {
+            compatible = "ft,ft90-pinctrl";
+            reg = <0x40000000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_PINCTRL>;
+            #address-cells = <1>;
+            #size-cells = <1>;
+            status = "disabled";
+        };
+
+        eport0: eport@40019000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x40019000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT0>;
+            resets = <&rctl FOCALTECH_RESET_EPORT0>;
+            interrupts = <41 0>, <42 0>, <43 0>, <44 0>,
+                <45 0>, <46 0>, <47 0>, <48 0>;
+            status = "disabled";
+        };
+
+        eport1: eport@4001a000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x4001a000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT1>;
+            resets = <&rctl FOCALTECH_RESET_EPORT1>;
+            interrupts = <49 0>, <50 0>, <51 0>, <52 0>,
+                 <53 0>, <54 0>, <55 0>, <56 0>;
+            status = "disabled";
+        };
+
+        eport2: eport@40024000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x40024000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT2>;
+            resets = <&rctl FOCALTECH_RESET_EPORT2>;
+            interrupts = <92 0>, <93 0>, <94 0>, <95 0>,
+                <96 0>, <97 0>, <98 0>, <99 0>;
+            status = "disabled";
+        };
+
+        eport3: gpio@40025000 {
+            compatible = "ft,ft90-gpio", "ft,ft90-gpio";
+            gpio-controller;
+            reg = <0x40025000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT3>;
+            resets = <&rctl FOCALTECH_RESET_EPORT3>;
+            #gpio-cells = <2>;
+            interrupts = <100 0>, <101 0>, <102 0>, <103 0>,
+                <104 0>, <105 0>, <106 0>, <107 0>;
+            status = "disabled";
+        };
+
+        eport4: eport@40026000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x40026000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT4>;
+            resets = <&rctl FOCALTECH_RESET_EPORT4>;
+            interrupts = <108 0>, <109 0>, <110 0>, <111 0>,
+                <112 0>, <113 0>, <114 0>, <115 0>;
+            status = "disabled";
+        };
+
+        eport5: eport@40027000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x40027000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT5>;
+            resets = <&rctl FOCALTECH_RESET_EPORT5>;
+            interrupts = <116 0>, <117 0>, <118 0>, <119 0>,
+                <120 0>, <121 0>, <122 0>, <123 0>;
+            status = "disabled";
+        };
+
+        eport6: eport@40028000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x40028000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT6>;
+            resets = <&rctl FOCALTECH_RESET_EPORT6>;
+            interrupts = <124 0>, <125 0>, <126 0>, <127 0>,
+                <128 0>, <129 0>, <130 0>, <131 0>;
+            status = "disabled";
+        };
+
+        eport7: eport@40029000 {
+            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+            gpio-controller;
+            #gpio-cells = <2>;
+            reg = <0x40029000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_EPORT7>;
+            resets = <&rctl FOCALTECH_RESET_EPORT7>;
+            interrupts = <132 0>, <133 0>, <134 0>, <135 0>,
+                <136 0>, <137 0>, <138 0>, <139 0>;
+            status = "disabled";
+        };
+
+        wdt0: watchdog@40005000 {
+            compatible = "ft,ft90-wdt";
+            reg = <0x40005000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_WDT>;
+            resets = <&rctl FOCALTECH_RESET_WDT>;
+            status = "disabled";
+        };
+
+        tc0: timer@40006000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x40006000 0x1000>;
+            interrupts = <2 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_TC>;
+            resets = <&rctl FOCALTECH_RESET_TC>;
+            status = "disabled";
+        };
+
+        pit0: timer@40007000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x40007000 0x1000>;
+            interrupts = <3 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PIT0>;
+            resets = <&rctl FOCALTECH_RESET_PIT0>;
+            status = "disabled";
+        };
+
+        pit1: timer@40008000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x40008000 0x1000>;
+            interrupts = <4 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PIT1>;
+            resets = <&rctl FOCALTECH_RESET_PIT1>;
+            status = "disabled";
+        };
+
+        usi0: usi@40009000  {
+            compatible = "ft,ft90-usi";
+            reg = <0x40009000 0x1000>;
+            interrupts = <63 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_USI0>;
+            resets = <&rctl FOCALTECH_RESET_USI0>;
+            status = "disabled";
+        };
+
+        usi1: usi@40015000  {
+            compatible = "ft,ft90-usi";
+            reg = <0x40015000 0x1000>;
+            interrupts = <34 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_USI1>;
+            resets = <&rctl FOCALTECH_RESET_USI1>;
+            status = "disabled";
+        };
+
+        edmac0: edmac@40039000 {
+            compatible = "ft,ft90-edma";
+            reg = <0x40039000 0x1000>;
+            interrupts = <5 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_EDMAC0>;
+            resets = <&rctl FOCALTECH_RESET_EDMAC0>;
+            status = "disabled";
+        };
+
+        edmac1: edmac@4000a000 {
+            compatible = "ft,ft90-edma";
+            reg = <0x4000a000 0x1000>;
+            interrupts = <6 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_EDMAC1>;
+            resets = <&rctl FOCALTECH_RESET_EDMAC1>;
+            status = "disabled";
+        };
+
+        dmac0: dmac@40046000 {
+            compatible = "ft,ft90-dma";
+            reg = <0x40046000 0x1000>;
+            interrupts = <7 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_DMAC0>;
+            resets = <&rctl FOCALTECH_RESET_DMAC0>;
+            dma-channels = <4>;
+            #dma-cells = <4>;
+            status = "disabled";
+        };
+
+        dmac1: dmac@40047000 {
+            compatible = "ft,ft90-dma";
+            reg = <0x40047000 0x1000>;
+            interrupts = <8 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_DMAC1>;
+            resets = <&rctl FOCALTECH_RESET_DMAC1>;
+            dma-channels = <2>;
+            #dma-cells = <4>;
+            status = "disabled";
+        };
+
+        can0: can@4000c000 {
+            compatible = "ft,ft90-can";
+            reg = <0x4000c000 0x1000>;
+            interrupts = <64 0>, <65 0>, <66 0>, <67 0>,
+            <68 0>, <69 0>, <70 0>, <71 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_CAN0>;
+            resets = <&rctl FOCALTECH_RESET_CAN0>;
+            status = "disabled";
+        };
+
+        can1: can@4000d000 {
+            compatible = "ft,ft90-can";
+            reg = <0x4000d000 0x1000>;
+            interrupts = <72 0>, <73 0>, <74 0>, <75 0>,
+                <76 0>, <77 0>, <78 0>, <79 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_CAN1>;
+            resets = <&rctl FOCALTECH_RESET_CAN1>;
+            status = "disabled";
+        };
+
+        acmp0: acmp@4000e000 {
+            compatible = "ft,ft90-acmp";
+            reg = <0x4000e000 0x1000>;
+            interrupts = <82 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_ACMP0>;
+            resets = <&rctl FOCALTECH_RESET_ACMP0>;
+            status = "disabled";
+        };
+
+        acmp1: acmp@4000f000 {
+            compatible = "ft,ft90-acmp";
+            reg = <0x4000f000 0x1000>;
+            interrupts = <83 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_ACMP1>;
+            resets = <&rctl FOCALTECH_RESET_ACMP1>;
+            status = "disabled";
+        };
+
+        pwm0: pwm@40018000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x40018000 0x1000>;
+            interrupts = <37 0>, <38 0>, <39 0>, <40 0>,
+                <87 0>, <88 0>, <89 0>, <90 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PWM0>;
+            resets = <&rctl FOCALTECH_RESET_PWM0>;
+            //channels = <4>;
+            status = "disabled";
+            pwm {
+                compatible = "ft,ft90-pwm";
+                status = "disabled";
+                #pwm-cells = <3>;
+            };
+        };
+
+        pwmt0: pwmt@4002d000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x4002d000 0x1000>;
+            interrupts = <84 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PWMT0>;
+          resets = <&rctl FOCALTECH_RESET_PWMT0>;
+            is-advanced;
+            //channels = <4>;
+            status = "disabled";
+            pwm {
+                compatible = "ft,ft90-pwm";
+                status = "disabled";
+                #pwm-cells = <3>;
+            };
+        };
+
+        pwmt1: pwmt@4002e000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x4002e000 0x1000>;
+            interrupts = <85 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PWMT1>;
+         resets = <&rctl FOCALTECH_RESET_PWMT1>;
+            is-advanced;
+            //channels = <4>;
+            status = "disabled";
+            pwm {
+                compatible = "ft,ft90-pwm";
+                status = "disabled";
+                #pwm-cells = <3>;
+            };
+        };
+
+        pwmt2: pwmt@4002f000 {
+            compatible = "ft,ft90-timer";
+            reg = <0x4002f000 0x1000>;
+            interrupts = <86 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PWMT2>;
+            resets = <&rctl FOCALTECH_RESET_PWMT2>;
+            is-advanced;
+            //channels = <4>;
+            status = "disabled";
+            pwm {
+                compatible = "ft,ft90-pwm";
+                status = "disabled";
+                #pwm-cells = <3>;
+            };
+        };
+
+        mcc: mcc@40022000 {
+            compatible = "ft,ft90-mcc";
+            reg = <0x40022000 0x1000>;
+            interrupts = <22 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_MCCM>;
+            resets = <&rctl FOCALTECH_RESET_MCC>;
+            status = "disabled";
+        };
+
+        rtc: rtc@40035000 {
+            compatible = "ft,ft90-rtc";
+            reg = <0x40035000 0x1000>;
+            interrupts = <15 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_PMURTC>;
+            resets = <&rctl FOCALTECH_RESET_PMURTC>;
+            status = "disabled";
+        };
+
+        trng: trng@4003b000 {
+            compatible = "ft,ft90-trng";
+            reg = <0x4003b000 0x1000>;
+            interrupts = <10 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_TRNG>;
+            resets = <&rctl FOCALTECH_RESET_TRNG>;
+            status = "disabled";
+        };
+
+        crypto: crypto@40037000 {
+            compatible = "ft,ft90-crypto";
+            reg = <0x40037000 0x1000>;
+            interrupts = <16 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_CRYPTO>;
+            resets = <&rctl FOCALTECH_RESET_CRYPTO>;
+            status = "disabled";
+        };
+
+        sha: sha@40038000 {
+            compatible = "ft,ft90-sha";
+            reg = <0x40038000 0x1000>;
+            interrupts = <17 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_SHA>;
+            resets = <&rctl FOCALTECH_RESET_SHA>;
+            status = "disabled";
+        };
+
+        des: des@40040000 {
+            compatible = "ft,ft90-des";
+            reg = <0x40040000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_DES>;
+            resets = <&rctl FOCALTECH_RESET_DES>;
+            status = "disabled";
+        };
+
+        sm4: sm4@40042000 {
+            compatible = "ft,ft90-sm4";
+            reg = <0x40042000 0x1000>;
+            interrupts = <19 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_SM4>;
+            resets = <&rctl FOCALTECH_RESET_SM4>;
+            status = "disabled";
+        };
+
+        aes: aes@40041000 {
+            compatible = "ft,ft90-aes";
+            reg = <0x40041000 0x1000>;
+            interrupts = <19 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_AES>;
+            resets = <&rctl FOCALTECH_RESET_AES>;
+            status = "disabled";
+        };
+
+        zuc: zuc@40043000 {
+            compatible = "ft,ft90-zuc";
+            reg = <0x40043000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_ZUC>;
+            resets = <&rctl FOCALTECH_RESET_ZUC>;
+            status = "disabled";
+        };
+
+        usb: usb@4004c000 {
+            compatible = "ft,ft90-usb";
+            reg = <0x4004c000 0x1000>;
+            interrupts = <24 0>;
+            clocks = <&rcc FOCALTECH_CLOCK_USBC>;
+            resets = <&rctl FOCALTECH_RESET_USBC>;
+            num-bidir-endpoints = <8>;
+	        //ram-size = <1280>;
+	        maximum-speed = "full-speed";
+            //maximum-speed = "high-speed";
+            status = "disabled";
+        };
+
+        i2s0: i2s@40056000 {
+            compatible = "ft,ft90-i2s";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            reg = <0x40056000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_I2S0>;
+            resets = <&rctl FOCALTECH_RESET_I2S0>;
+            interrupts = <80 0>;
+            status = "disabled";
+        };
+
+        i2s1: i2s@40057000 {
+            compatible = "ft,ft90-i2s";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            reg = <0x40057000 0x1000>;
+            clocks = <&rcc FOCALTECH_CLOCK_I2S1>;
+            resets = <&rctl FOCALTECH_RESET_I2S1>;
+            interrupts = <81 0>;
+            status = "disabled";
+        };
+
+        xspi0: ssi@13000000 {
+		compatible = "ft,ft90-xspi";
+		reg = <0x13000000 0x400>, <0x10000000 DT_SIZE_M(2)>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		//ssi-id = <1>;
+		interrupts = <29 0>;
+		status = "disabled";
+	};
+        
+    };
+};
+
+&nvic {
+    arm,num-irq-priority-bits = <3>;
+};
+
+&cpu0 {
+    clock-frequency = <DT_FREQ_M(160)>;
+};

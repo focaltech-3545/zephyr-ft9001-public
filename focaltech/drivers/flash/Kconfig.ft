@@ -1,0 +1,7 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config FLASH_FT_FT90
+	bool "FLASH FT FT90"
+	default y
+	

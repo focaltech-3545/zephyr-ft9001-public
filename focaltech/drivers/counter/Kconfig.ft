@@ -1,0 +1,10 @@
+# Copyright (c) 2023, Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config COUNTER_TIMER_FOCALTECH
+	bool "FOCALTECH timer counter driver"
+	default y
+	depends on DT_HAS_FT_FT90_TIMER_ENABLED
+	select USE_FOCALTECH_HAL_TC
+	help
+	  Enable counter timer driver for FOCALTECH series devices.

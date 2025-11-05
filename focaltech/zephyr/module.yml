@@ -1,0 +1,8 @@
+name: hal_ft
+build:
+  kconfig: Kconfig
+  cmake: .
+  settings:
+    board_root: .
+    dts_root: .
+    soc_root: .

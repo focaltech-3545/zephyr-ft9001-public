@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+
+
+if HWINFO
+
+module = HWINFO
+module-str = HWINFO
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "./Kconfig.*"
+
+endif # HWINFO

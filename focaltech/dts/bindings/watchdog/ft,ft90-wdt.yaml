@@ -1,0 +1,26 @@
+# Copyright (c) 2021, TOKITA Hiroshi
+# SPDX-License-Identifier: Apache-2.0
+
+description: ft free watchdog timer
+
+compatible: "ft,ft90-wdt"
+
+include: [base.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  initial-timeout-ms:
+    type: int
+    default: 250
+    description: |
+      Set timeout value in milliseconds.
+      The following equation gives the maximum timeout value
+
+        timeout = (reload + 1) / (peripheral_freqency / prescaler).
+
+      where the prescaler = 4096 and the maximum reload = 65536.
+
+      0.25 [timeout in sec] = (1999 [reload] + 1) / (32000 [freq] / 4 [prescaler])
+      0.25 [timeout in sec] = (2499 [reload] + 1) / (40000 [freq] / 4 [prescaler])

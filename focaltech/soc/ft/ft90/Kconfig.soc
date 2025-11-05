@@ -1,0 +1,23 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config SOC_SERIES_FT90
+	bool
+	select SOC_FAMILY_FOCALTECH
+	help
+	  Enable support for Focaltech FT90 MCU series
+
+config SOC_SERIES
+	default "ft90" if SOC_SERIES_FT90
+
+config SOC_FT9002S
+	bool
+	select SOC_SERIES_FT90
+	
+config SOC_FT9001
+	bool
+	select SOC_SERIES_FT90
+
+config SOC
+	default "ft9002s" if SOC_FT9002S
+	default "ft9001" if SOC_FT9001

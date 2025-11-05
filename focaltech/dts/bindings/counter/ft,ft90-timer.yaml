@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: Focaltech timer
+
+compatible: "ft,ft90-timer"
+
+include: [reset-device.yaml, base.yaml]
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  resets:
+    required: true
+
+  channels:
+    type: int
+    default: 0
+    description: Number of timer channels.
+
+  prescaler:
+    type: int
+    default: 0x7
+    description: Timer prescaler. Defaults to 0 (SoC default).
+
+  is-32bit:
+    type: boolean
+    description: Indicates if timer has a 32-bit counter.
+
+  is-advanced:
+    type: boolean
+    description: |
+      Indicates if timer has advanced features. Such features include break
+      inputs, dead-time insertion, etc.

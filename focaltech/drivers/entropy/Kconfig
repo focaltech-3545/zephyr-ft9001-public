@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if ENTROPY_GENERATOR
+
+module = ENTROPY
+module-str = entropy
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "./Kconfig.*"
+
+endif

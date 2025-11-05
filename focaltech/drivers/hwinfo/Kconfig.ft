@@ -1,0 +1,9 @@
+
+
+config HWINFO_FOCALTECH
+	bool "FOCALTECH hwinfo"
+	default y
+	depends on SOC_FAMILY_FOCALTECH
+	select HWINFO_HAS_DRIVER
+	help
+	  Enable FOCALTECH hwinfo driver.

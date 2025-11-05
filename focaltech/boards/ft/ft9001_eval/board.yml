@@ -1,0 +1,8 @@
+board:
+  name: ft9001_eval
+  full_name: FT9001-EVAL
+  vendor: ft
+  socs:
+    - name: ft9001
+
+

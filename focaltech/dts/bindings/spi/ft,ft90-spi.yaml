@@ -1,0 +1,29 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+description: ft spi
+
+compatible: "ft,ft90-spi"
+
+include: [spi-controller.yaml, reset-device.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  resets:
+    required: false
+
+  clocks:
+    required: true
+
+  pinctrl-names:
+    required: false
+
+  guard_time:
+    type: int
+    default: 0
+    description:
+      SPI guard time during 2frames, (gdt[5:3]+1)*(2^gdt[2:0]+1)

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if GPIO
+
+module = GPIO
+module-str = gpio
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "./Kconfig.*"
+
+endif # GPIO

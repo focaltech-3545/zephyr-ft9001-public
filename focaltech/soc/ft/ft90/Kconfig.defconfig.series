@@ -1,0 +1,8 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_SERIES_FT90
+
+rsource "Kconfig.defconfig.ft90*"
+
+endif # SOC_SERIES_FT90

@@ -1,0 +1,9 @@
+# Copyright (c) 2022 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config CLOCK_CONTROL_FT90
+	bool "FT90 clock control"
+	default y
+	depends on SOC_FAMILY_FOCALTECH
+	help
+	  Enable driver for Gigadevice Reset Clock Unit (RCU).

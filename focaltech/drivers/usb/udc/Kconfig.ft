@@ -1,0 +1,40 @@
+# Copyright (c) 2025 Neldtv
+# SPDX-License-Identifier: Apache-2.0
+
+
+config UDC_FOCALTECH
+	bool "FOCALTECH for an USB device controller driver"
+	default y
+	depends on DT_HAS_ZEPHYR_UDC_FOCALTECH_ENABLED \
+		|| DT_HAS_FT_FT90_USB_ENABLED 
+	select USE_FOCALTECH_HAL_USB
+	help
+	  ccm for an USB device controller driver.
+
+config UDC_FT_STACK_SIZE
+	int "UDC controller driver internal thread stack size"
+	depends on UDC_FOCALTECH
+	default 4096
+	help
+	  ccm device controller driver internal thread stack size.
+
+config UDC_FT_THREAD_PRIORITY
+	int "FOCALTECH controller driver thread priority"
+	depends on UDC_FOCALTECH
+	default 8
+	help
+	  Skeleton device controller driver thread priority.
+
+config UDC_FT_MAX_QMESSAGES
+	int "UDC FOCALTECH message queue size"
+	default 32
+	help
+	  Maximum number of messages the driver can queue for interrupt bottom half processing.
+
+#config UDC_FT_DMA
+#	bool "FT USB DMA support"
+#	default y
+#	help
+#	  Enable Buffer DMA if DWC2 USB controller supports Internal DMA.
+#	
+

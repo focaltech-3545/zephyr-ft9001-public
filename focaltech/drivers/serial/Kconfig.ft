@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config UART_FOCALTECH
+	bool "FT90 MCU serial driver"
+	default y
+	depends on SERIAL
+	depends on SOC_FAMILY_FOCALTECH
+	select SERIAL_HAS_DRIVER
+	select USE_FOCALTECH_HAL_UART
+	select SERIAL_SUPPORT_INTERRUPT
+	help
+	  This option enables the UART driver for FOCALTECH family of processors.
+
+if UART_FOCALTECH
+config UART_INTERRUPT_DRIVEN
+	bool "UART Interrupt support"
+	depends on SERIAL_SUPPORT_INTERRUPT
+	help
+	  This option enables interrupt support for UART allowing console
+	  input and other UART based drivers.
+  
+config UART_USE_RUNTIME_CONFIGURE
+	bool "Runtime configuration for UART controllers"
+	default y
+	help
+		Enable runtime configuration of UART controllers.
+		This allows applications to call uart_configure() to
+		configure the UART controllers at runtime, and calling
+		uart_config_get() to retrieve configuration. If this is
+		disabled, UART controllers rely on UART driver
+		initialization function to properly configure
+		the controller.
+  
+		Say y if unsure. Disable this to reduce footprint for
+		applications that do not require runtime UART configuration.
+  
+  endif # UART_FOCALTECH

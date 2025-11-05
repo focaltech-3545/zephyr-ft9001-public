@@ -1,0 +1,25 @@
+# Copyright 2017, 2024 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+description: FT90 GPIO node
+
+compatible: "ft,ft90-gpio"
+
+include: [gpio-controller.yaml, base.yaml, pinctrl-device.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+  interrupts:
+    type: array
+    required: true
+
+  "#gpio-cells":
+    const: 2
+  mask:  
+    description: "The GPIO mask for the device"
+    type: int
+
+gpio-cells:
+  - pin
+  - flags

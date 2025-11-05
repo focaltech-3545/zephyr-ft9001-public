@@ -1,0 +1,20 @@
+# Copyright (c) 2021, Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+description: ft usart
+
+compatible: "ft,ft90-usart"
+
+include: [uart-controller.yaml, reset-device.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  resets:
+    required: false
+
+  clocks:
+    required: true

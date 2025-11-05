@@ -1,0 +1,21 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config SOC_SERIES_FT90
+	select ARM
+	select CPU_CORTEX_M4
+	select CPU_HAS_ARM_MPU
+	select CPU_HAS_FPU
+	select CPU_CORTEX_M_HAS_SYSTICK
+	select CPU_CORTEX_M_HAS_VTOR
+	select SOC_EARLY_INIT_HOOK
+	#select HAS_FOCALTECH_EXT_LIB
+
+config SOC_FT9002S
+	select HAS_FOCALTECH_HAL
+	select HAS_FT9002LIB
+		
+config SOC_FT9001
+        select HAS_FOCALTECH_HAL
+        select HAS_FT9001LIB
+	#select HAS_PM

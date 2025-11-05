@@ -1,0 +1,7 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+description: ft entropy
+
+compatible: "ft,ft90-trng"
+
+include: [base.yaml, reset-device.yaml]

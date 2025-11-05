@@ -1,0 +1,9 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config PINCTRL_FOCALTECH
+	bool "PINCTRL Driver for FOCALTECH family of MCUs"
+    default y
+	depends on SOC_FAMILY_FOCALTECH
+	help
+	  This option enables the Pinctrl driver for FOCALTECH family of processors.

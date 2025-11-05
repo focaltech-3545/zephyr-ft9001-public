@@ -1,0 +1,7 @@
+family:
+- name: ft
+  series:
+  - name: ft90
+    socs:
+    - name: ft9002s
+    - name:	 ft9001

@@ -1,0 +1,177 @@
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config ZEPHYR_HAL_FOCALTECH_MODULE
+	bool
+	
+config HAS_FOCALTECH_HAL
+	bool
+	depends on SOC_FAMILY_FOCALTECH
+
+config HAS_FOCALTECH_EXT_LIB
+	bool
+	depends on SOC_FAMILY_FOCALTECH
+
+config HAS_FT9002LIB
+	bool
+	depends on SOC_FT9002S
+
+config HAS_FT9001LIB
+  bool
+	depends on SOC_FT9001
+
+if HAS_FT9002LIB || HAS_FT9001LIB
+
+config USE_FOCALTECH_HAL_ADC
+	bool
+	help
+	  Enable ft ADC module driver
+
+config USE_FOCALTECH_HAL_ALG
+	bool
+	help
+	  Enable ft alg module driver
+
+config USE_FOCALTECH_HAL_C0
+	bool
+	help
+	  Enable ft c0 module driver
+
+config USE_FOCALTECH_HAL_CACHE
+	bool
+	help
+	  Enable ft cache module driver
+
+config USE_FOCALTECH_HAL_FOCALTECH
+	bool
+	help
+	  Enable ft ft module driver
+
+config USE_FOCALTECH_HAL_CPM
+	bool
+	help
+	  Enable ft cpm module driver
+
+config USE_FOCALTECH_HAL_CRC
+	bool
+	help
+	  Enable ft crc module driver
+
+config USE_FOCALTECH_HAL_DAC
+	bool
+	help
+	  Enable ft dac module driver
+
+config USE_FOCALTECH_HAL_DMAC
+	bool
+	help
+	  Enable ft dmac module driver
+
+config USE_FOCALTECH_HAL_EDMA
+	bool
+	help
+	  Enable ft edma module driver
+
+config USE_FOCALTECH_HAL_EFLASH
+	bool
+	help
+	  Enable ft eflash module driver
+
+config USE_FOCALTECH_HAL_EPORT
+	bool
+	help
+	  Enable ft eport module driver
+
+config USE_FOCALTECH_HAL_I2C
+	bool
+	help
+	  Enable ft i2c module driver
+
+config USE_FOCALTECH_HAL_IOCTRL
+	bool
+	help
+	  Enable ft ioctrl module driver
+
+config USE_FOCALTECH_HAL_PCI
+	bool
+	help
+	  Enable ft pci module driver
+
+config USE_FOCALTECH_HAL_PIT32
+	bool
+	help
+	  Enable ft pit32 module driver
+
+config USE_FOCALTECH_HAL_PWM
+	bool
+	help
+	  Enable ft pwm module driver
+
+config USE_FOCALTECH_HAL_RESET
+	bool
+	help
+	  Enable ft reset module driver
+
+config USE_FOCALTECH_HAL_RTC
+	bool
+	help
+	  Enable ft rtc module driver
+
+config USE_FOCALTECH_HAL_SPI
+	bool
+	help
+	  Enable ft spi module driver
+
+config USE_FOCALTECH_HAL_SSI
+	bool
+	help
+	  Enable ft ssi module driver
+
+config USE_FOCALTECH_HAL_TC
+	bool
+	help
+	  Enable ft tc module driver
+
+config USE_FOCALTECH_HAL_TRNG
+	bool
+	help
+	  Enable ft trng module driver
+
+config USE_FOCALTECH_HAL_TSI
+	bool
+	help
+	  Enable ft tsi module driver
+
+config USE_FOCALTECH_HAL_UART
+	bool
+	help
+	  Enable ft uart module driver
+
+config USE_FOCALTECH_HAL_USI
+	bool
+	help
+	  Enable ft usi module driver
+
+config USE_FOCALTECH_HAL_WDT
+	bool
+	help
+	  Enable ft wdt module driver
+
+config USE_FOCALTECH_HAL_XIP
+	bool
+	help
+	  Enable ft xip module driver
+
+config USE_FOCALTECH_HAL_USB
+	bool
+	help
+	  Enable ft usb module driver
+
+config UDC_DRIVER_HAS_HIGH_SPEED_SUPPORT
+	bool
+	help
+	  Enable ft usb module driver
+
+
+endif #HAS_FT9002LIB || HAS_FT9001LIB
+

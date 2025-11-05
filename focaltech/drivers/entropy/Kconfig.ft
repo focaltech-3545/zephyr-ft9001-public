@@ -1,0 +1,12 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config ENTROPY_FT
+	bool "Focaltech FT9001 TRNG driver"
+	default y
+	depends on ENTROPY_GENERATOR
+	depends on SOC_FAMILY_FOCALTECH
+	select ENTROPY_HAS_DRIVER
+	help
+	  This option enables the FT9001 true random number generator (TRNG)
+	

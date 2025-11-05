@@ -1,0 +1,14 @@
+# Copyright (c) 2025, Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_FAMILY_FOCALTECH
+
+rsource "*/Kconfig.defconfig.series"
+
+config RESET
+	default y
+
+config CLOCK_CONTROL
+	default y
+
+endif # SOC_FAMILY_FOCALTECH
