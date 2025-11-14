@@ -19,6 +19,7 @@
 		zephyr,flash = &flash0;
 		zephyr,sram = &sram0;
 		zephyr,sram2 = &sramd0;
+		zephyr,sram3 = &psram;
 		zephyr,flash-controller = &efm;
 		zephyr,entropy = &trng;
 	};

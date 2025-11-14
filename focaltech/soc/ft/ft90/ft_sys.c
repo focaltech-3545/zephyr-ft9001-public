@@ -20,6 +20,8 @@ static uint32_t g_trim_clk;
 uint8_t (*xip_flash_erase)(struct str_flash *p_ssi_para);
 uint8_t (*xip_flash_program)(struct str_flash *p_ssi_para);
 static uint8_t (*xip_sys_clk_switch)(struct str_flash *p_ssi_para);
+uint8_t (*ssi_open_xip)(struct str_flash *p_ssi_para);
+uint8_t (*ssi_close_xip)(struct str_flash *p_ssi_para);
 
 /* Calls a ROM function. This function must be called to initialize before any flash operation. */
 void ft_xip_flash_init()
@@ -28,6 +30,8 @@ void ft_xip_flash_init()
     xip_flash_erase = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x0400747a | 1)));
     xip_flash_program = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x0400752e | 1)));
     xip_sys_clk_switch = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x04007658 | 1)));
+    ssi_open_xip = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x040069d4 | 1)));
+	ssi_close_xip = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x0400665c | 1)));
 
     for (i = 0; i < 3; i++)
     {
@@ -399,6 +403,45 @@ static void DRV_ICACHE_Init(CACHE_ComTypeDef boot,
     ICACHE->CACHE_CCR |= ENCACHE;
 }
 
+void DRV_PSRAM_OPENXIP( uint32_t ssi_rx_sample_delay)
+{
+    struct str_flash  ssiconfig;
+    ssiconfig.SsiId = 6;
+    ssiconfig.StandBaudr =2;
+    ssiconfig.QuadBaudr = 2;
+
+    ssiconfig.RxSampleDelay =  ssi_rx_sample_delay ;
+    ssiconfig.Cmd = 0x35 ;
+    ssiconfig.IsMaskInterrupt =0;
+    ssiconfig.Delay =0;
+    
+    ssi_open_xip(&ssiconfig);
+}
+
+void DRV_PSRAM_CloseXIP(void)
+{
+    struct str_flash  ssiconfig;
+    ssiconfig.SsiId = 6;
+    ssiconfig.StandBaudr =2;
+    ssiconfig.QuadBaudr = 2;
+
+    ssiconfig.RxSampleDelay =  0 ;
+    ssiconfig.Cmd = 0x35 ;
+    ssiconfig.IsMaskInterrupt =0;
+    ssiconfig.Delay =0;
+
+    ssi_close_xip(&ssiconfig);
+}
+
+void HAL_SSI_PSRAMOpenXIP(uint32_t ssi_rx_sample_delay)
+{
+    DRV_PSRAM_OPENXIP(ssi_rx_sample_delay);
+}
+
+void HAL_SSI_PSRAMCloseXIP(void)
+{
+    DRV_PSRAM_CloseXIP();
+}
 
 #if 1
 static void ft_Sys_CacheInit(void)
@@ -411,15 +454,16 @@ static void ft_Sys_CacheInit(void)
                     CACHE_Through,
                     CACHE_Through,
                     CACHE_Through,
-                    CACHE_Off);
+                    CACHE_Through);
     
     DRV_ICACHE_Init(CACHE_Through,
                     CACHE_Through,
                     CACHE_Through,
                     CACHE_Through,
-                    CACHE_Off);
+                    CACHE_Through);
 
-   
+    HAL_SSI_PSRAMCloseXIP();
+    HAL_SSI_PSRAMOpenXIP(1);
 }
 #endif
 
