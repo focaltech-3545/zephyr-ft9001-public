@@ -4,7 +4,7 @@
 zephyr_include_directories(${ZEPHYR_BASE}/drivers)
 zephyr_sources(soc.c)
 
-zephyr_sources(ft_trace.c)
+#zephyr_sources(ft_trace.c)
 zephyr_sources(ft_sys.c)
 
 zephyr_include_directories(.)

@@ -17,11 +17,11 @@ void soc_early_init_hook(void)
 	/* Configure the Vector Table location */
 	SCB->VTOR = ((unsigned int)_vector_start) & 0xFFFFFE00;
 
-	FT_TRACE((uint32_t)soc_early_init_hook,__LINE__);
+	//FT_TRACE((uint32_t)soc_early_init_hook,__LINE__);
 	ft_Sys_Init();
 	//SystemInit();
 
-	FT_TRACE((uint32_t)soc_early_init_hook,__LINE__);
+	//FT_TRACE((uint32_t)soc_early_init_hook,__LINE__);
 
 #if defined(CONFIG_HAS_FT9001LIB)
 

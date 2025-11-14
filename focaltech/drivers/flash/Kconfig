@@ -4,10 +4,18 @@ config FLASH_FT_FT90
 #	depends on DT_HAS_FT_FT90_FLASH_CONTROLER_ENABLED
 	select FLASH_HAS_DRIVER_ENABLED
 	select FLASH_HAS_EXPLICIT_ERASE
+#	select FLASH_EX_OP_ENABLED
 	help
 	  Enable driver for FT90
 
 if FLASH_FT_FT90
+
+config FLASH_EX_OP_ENABLED
+	bool "FLASH EX OP"
+	default y
+	help
+          Enable Flash ex op for FT90
+
 
 config FLASH_FT_FT90_INIT_PRIORITY
 	int

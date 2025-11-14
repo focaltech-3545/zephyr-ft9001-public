@@ -8,14 +8,69 @@
 #include <zephyr/init.h>
 #include <zephyr/logging/log.h>
 #include <stdio.h>
+#include <zephyr/drivers/gpio.h>
+
 
 #include <ft_trace.h>
-
 #include "flash_driver.h"
+
+
+//#define BIT(x) ((1<<x))
+#define FT_FLASH_EX_OP_SET_WP BIT(0)
+#define FT_FLASH_EX_OP_GET_WP BIT(1)
+#define FT_FLASH_EX_OP_CLR_WP BIT(2)
+
+#define FT_FLASH_PROTECT_STATUS_UNSET 0
+
+#define FT_FLASH_FT90_EX_OP_WR_SR  BIT(15)
+#define FT_FLASH_FT90_EX_OP_RD_SR  BIT(14)
 
 #define FT_FLASH_BASE_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_MAX_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_SIZE_PER_ID 0x4000000
+
+
+typedef struct
+{
+        __IO uint32_t CTRLR0;         //0x00
+        __IO uint32_t CTRLR1;         //0x04
+        __IO uint32_t SSIENR;         //0x08
+        __IO uint32_t MWCR;           //0x0c
+        __IO uint32_t SER;            //0x10
+        __IO uint32_t BAUDR;          //0x14
+        __IO uint32_t TXFTLR;         //0x18
+        __IO uint32_t RXFTLR;         //0x1c
+        __IO uint32_t TXFLR;          //0x20
+        __IO uint32_t RXFLR;          //0x24
+        __IO uint32_t SR;             //0x28
+        __IO uint32_t IMR;            //0x2c
+        __IO uint32_t ISR;            //0x30
+        __IO uint32_t RISR;           //0x34
+        __IO uint32_t TXOICR;         //0x38
+        __IO uint32_t RXOICR;         //0x3c
+        __IO uint32_t RXUICR;         //0x40
+        __IO uint32_t reserve_44;     //0x44
+        __IO uint32_t ICR;            //0x48
+        __IO uint32_t DMACR;          //0x4c
+        __IO uint32_t DMATDLR;        //0x50
+        __IO uint32_t DMARDLR;        //0x54
+        __IO uint32_t reserve_58;     //0x58
+        __IO uint32_t reserve_5c;     //0x5c
+        __IO uint32_t DR;             //0x60
+        __IO uint32_t RESERVERED[35]; //0x64~0xec
+        __IO uint32_t RXSDR;          //0xf0
+        __IO uint32_t SPICTRLR0;      //0xf4
+        __IO uint32_t reserve_f8;     //0xf8
+        __IO uint32_t XIPMBR;         //0xfc
+        __IO uint32_t XIPIIR;         //0x100
+        __IO uint32_t XIPWIR;         //0x104
+        __IO uint32_t XIPCR;          //0x108
+        __IO uint32_t XIPSER;         //0x10C
+        __IO uint32_t XRXIOCR;        //0x110
+        __IO uint32_t reserve_114;    //0x114
+} SSI_TypeDef;
+
+
 
 extern struct str_flash ssi_cfg[3];
 extern uint8_t (*xip_flash_erase)(struct str_flash *p_ssi_para);
@@ -29,11 +84,6 @@ static const struct flash_parameters flash_ft90_parameters = {
 	.write_block_size = 1,
 	.erase_value = 0xff,
 };
-
-
-
-
-
 
 
 static uint32_t drv_ssi_get_ssi_id(uint32_t addr)
@@ -55,6 +105,116 @@ static uint32_t drv_ssi_get_ssi_id(uint32_t addr)
 
     return ssi_id;
 }
+
+#if defined(CONFIG_FLASH_EX_OP_ENABLED)
+
+#define CCM_SSICFG (*(volatile uint32_t *)(0x40001000 + 0x3c))
+
+#define FT_NOP()				\
+	do {	  __builtin_arm_nop();		\
+		      __builtin_arm_nop();	\
+		      __builtin_arm_nop();	\
+	}while(0)
+
+__attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t st)
+{
+ 
+#define SSI_ID 1
+#define SRx 1
+    
+        volatile SSI_TypeDef *SSI=(SSI_TypeDef *)0x13000000;
+
+        volatile uint32_t temp,CR0_Back ;
+        uint32_t timeout = 0,reg;
+
+        
+        reg = arch_irq_lock(); //disable interrupt
+
+        CCM_SSICFG &= ~((1 << (16 + SSI_ID - 1)) | (1 << (20 + SSI_ID - 1))); //disable XIP
+
+        
+        temp=SSI->SR;
+        SSI->SSIENR=0;
+
+        CR0_Back = SSI->CTRLR0;
+
+        SSI->CTRLR0 &= ~(0x3 << 22);           //CR0 STD mode
+        SSI->CTRLR0 |= (0x1 << 14);            //CR0 SSTE
+        SSI->CTRLR0 &= ~(0x3 << 10);           //CR0 Tmode
+        SSI->CTRLR0 &= ~(0x1F << 0);           //CR0 DFS,8 bits data
+        SSI->CTRLR0 |= 0x07;
+       
+        SSI->SSIENR=1;
+        
+	FT_NOP();
+
+        SSI->DR=0x05;	
+        SSI->DR=0x55;
+
+    
+	FT_NOP();
+        while(SSI->SR&0x01);   
+ 
+        temp=SSI->DR;
+        temp=SSI->DR;
+   
+        if(st&0x80){
+            goto exit;
+        }
+
+        SSI->DR=0x06;
+    
+    
+	FT_NOP();
+        while(SSI->SR&0x01);
+ 
+        temp=SSI->DR;
+
+	FT_NOP();
+        SSI->DR=0x1;
+        SSI->DR=st;
+
+	FT_NOP();
+        while(SSI->SR&0x1);
+        
+        temp=SSI->DR;
+        temp=SSI->DR;
+        
+        do{
+            timeout++;
+            if(timeout > 1000000)
+                break;
+            SSI->DR=0x05;
+            SSI->DR=0x55;
+
+	    FT_NOP();
+            while(SSI->SR&0x1);
+       
+            temp=SSI->DR;
+            temp=SSI->DR;
+
+        }while((temp&0x01) == 0x01);
+ 
+        SSI->DR=0x04;
+
+	FT_NOP();
+        while(SSI->SR&0x01);
+ 
+        temp=SSI->DR; 
+
+exit:
+    SSI->SSIENR=0;
+    SSI->CTRLR0=CR0_Back;
+    SSI->SSIENR=1;
+
+    CCM_SSICFG |= ((1 << (16 + SSI_ID - 1)) | (1 << (20 + SSI_ID - 1))); //enable XIP
+
+    arch_irq_unlock(reg);
+    return temp&0xff;
+}
+
+#endif
+
 
 static uint8_t drv_xip_flash_erase(uint32_t addr)
 {
@@ -397,14 +557,70 @@ static int flash_ft90_erase(const struct device *dev, off_t addr, size_t size)
 	return 0;
 }
 
+
+
 static int flash_ft90_init(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 	ft_xip_flash_init();
+
 	return 0;
 }
 
 
+#if defined(CONFIG_FLASH_EX_OP_ENABLED)
+
+static int flash_ft90_ex_op(const struct device *dev, uint16_t code,
+                               const uintptr_t in, void *out)
+{
+	
+	ARG_UNUSED(dev);
+	uint8_t *value;
+		
+	switch(code){
+	    
+	    case FT_FLASH_EX_OP_SET_WP:
+		if(out){
+		    value=(uint8_t*)out;
+		    printk("unsupport wp right now,ingnore,enable=%d\n",*value);
+		}
+		break;
+
+	    case FT_FLASH_EX_OP_GET_WP:
+		printk("unsupport wp right now,ingnore\n");
+		    if(in){
+			value=(uint8_t*)in;
+			*value=0;
+		    }
+		    break;
+	    
+        case FT_FLASH_FT90_EX_OP_WR_SR:
+		value=(uint8_t*)out;
+
+	    //		printk("WR sr=%d",*value);
+		if(*value>0x7f){
+
+		    printk("wrong value\n");
+		    return 0;
+		}
+
+		wr_FlashSRx(*value);
+
+		break;
+
+        case FT_FLASH_FT90_EX_OP_RD_SR:
+		value=(uint8_t*)in;
+		*value=wr_FlashSRx(0x80);
+		//printk("RD sr=%d",*value);
+		break;
+
+		default :break;
+	}
+
+	return 0;
+}
+
+#endif
 
 
 
@@ -421,6 +637,9 @@ static const struct flash_driver_api flash_ft90_api = {
 	.write = flash_ft90_write,
 	.erase = flash_ft90_erase,
 	.get_parameters = flash_ft90_get_parameters,
+#if defined(CONFIG_FLASH_EX_OP_ENABLED)
+	.ex_op=flash_ft90_ex_op,
+#endif
 };
 
 #define FLASH_FT_INIT(n)                                        \
