@@ -454,13 +454,13 @@ static void ft_Sys_CacheInit(void)
                     CACHE_Through,
                     CACHE_Through,
                     CACHE_Through,
-                    CACHE_Through);
+                    CACHE_Back);
     
     DRV_ICACHE_Init(CACHE_Through,
                     CACHE_Through,
                     CACHE_Through,
                     CACHE_Through,
-                    CACHE_Through);
+                    CACHE_Back);
 
     HAL_SSI_PSRAMCloseXIP();
     HAL_SSI_PSRAMOpenXIP(1);
