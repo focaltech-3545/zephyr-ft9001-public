@@ -1,3 +1,4 @@
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
 # SPDX-License-Identifier: Apache-2.0
 
 description: Focaltech timer
@@ -7,6 +8,11 @@ compatible: "ft,ft90-timer"
 include: [reset-device.yaml, base.yaml]
 
 properties:
+  clock-frequency:
+    type: int
+    default: 128000
+    description: Clock frequency information for tc
+
   reg:
     required: true
 
@@ -18,13 +24,22 @@ properties:
 
   channels:
     type: int
-    default: 0
+    default: 1
     description: Number of timer channels.
 
   prescaler:
     type: int
-    default: 0x7
-    description: Timer prescaler. Defaults to 0 (SoC default).
+    enum:
+    - 16
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+    - 1024
+    - 2048
+    default: 16
+    description: Timer prescaler. Defaults to 16 (SoC default).
 
   is-32bit:
     type: boolean

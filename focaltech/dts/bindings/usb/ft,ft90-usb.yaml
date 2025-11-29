@@ -1,7 +1,7 @@
-# Copyright (c) 2017, I-SENSE group of ICCS
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
 # SPDX-License-Identifier: Apache-2.0
 
-description: CCM OTGFS controller
+description: OTGFS controller
 
 compatible: "ft,ft90-usb"
 

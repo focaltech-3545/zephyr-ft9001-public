@@ -1,11 +1,11 @@
-/**************************************************************************//**
- * @file     system_ARMCM4.c
- * @brief    CMSIS Device System Source File for
- *           ARMCM4 Device Series
- * @version  V2.00
- * @date     18. August 2015
- ******************************************************************************/
-/* Copyright (c) 2011 - 2015 ARM LIMITED
+/**************************************************************************/ /**
+                                                                              * @file     system_ARMCM4.c
+                                                                              * @brief    CMSIS Device System Source
+                                                                              *File for ARMCM4 Device Series
+                                                                              * @version  V2.00
+                                                                              * @date     18. August 2015
+                                                                              ******************************************************************************/
+/* Copyright(c) 2025 Focaltech Co. Ltd.
 
    All rights reserved.
    Redistribution and use in source and binary forms, with or without
@@ -32,23 +32,23 @@
    POSSIBILITY OF SUCH DAMAGE.
    ---------------------------------------------------------------------------*/
 
-#include <stdio.h>
-#include "ft9001.h"
 #include "system_ft9001.h"
+#include "ft9001.h"
 #include "libft9001.h"
+#include <stdio.h>
 
-#include "wdt_reg.h"
 #include "tc_reg.h"
+#include "wdt_reg.h"
 
-#include "cpm_drv.h"
 #include "cache_drv.h"
+#include "cpm_drv.h"
 
-unsigned int SystemCoreClock; 
+unsigned int SystemCoreClock;
 void Sys_SysClkConfig();
 void Sys_wdt_close(void);
 void Sys_tc_close(void);
 
-void SystemInit (void)
+void SystemInit(void)
 {
     Sys_wdt_close();
     Sys_tc_close();
@@ -64,70 +64,68 @@ void SystemInit (void)
     /* 初始化时钟 */
     Sys_SysClkConfig();
 
-    //开启EFLASH加速模块
+    // 开启EFLASH加速模块
     DRV_DCACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Off, CACHE2_BASE_ADDR);
     DRV_ICACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Off, CACHE_BASE_ADDR);
-    
-    //CPM_ClearPADWKINTCR();      //清除默认中断唤醒源
-    
-    //CPM_VCC5V_Bypass(); //芯片3.3V或1.8V供电时，对功耗要求高，建议打开此接口，对功耗要求不高可以不打开; 芯片5V供电时必须屏蔽此接口,否则可能坏芯片！！！
+
+    // CPM_ClearPADWKINTCR();      //清除默认中断唤醒源
+
+    // CPM_VCC5V_Bypass(); //芯片3.3V或1.8V供电时，对功耗要求高，建议打开此接口，对功耗要求不高可以不打开;
+    // 芯片5V供电时必须屏蔽此接口,否则可能坏芯片！！！
 
     // 恢复ROM启动模式，开发完成后建议屏蔽此接口或换用其他方式恢复ROM启动
-    //Reback_Boot();
-    //DelayMS(1000);
+    // Reback_Boot();
+    // DelayMS(1000);
     /*配置串口作为debug用，时钟根据不同环境配置不同的时钟参数*/
-    //UART_Debug_Init(SCI1, g_ips_clk, 115200);
+    // UART_Debug_Init(SCI1, g_ips_clk, 115200);
 
     // UART打印版本信息
-    //Printf_Version();
+    // Printf_Version();
 }
 
 void Sys_SysClkConfig()
 {
-    //Trim CLock
+    // Trim CLock
     LIB_CPM_OscSwitch(OSC_320M_HZ);
 
-    //Select 320M clock
+    // Select 320M clock
     DRV_CPM_SystemClkOSC320MSelect();
 
-    //DRV_CPM_SetSystemClkDiv(pClkInit->SysClkDiv);
-//    DRV_XIP_SYSCLKSwitch((pClkInit->SysClkDiv + 1), 2, 1);
+    // DRV_CPM_SetSystemClkDiv(pClkInit->SysClkDiv);
+    //    DRV_XIP_SYSCLKSwitch((pClkInit->SysClkDiv + 1), 2, 1);
 
-    //set IPS clock
+    // set IPS clock
     DRV_CPM_SetIpsClkDiv(1);
 
-    //Enable low power if sys_fren<60M，trim_vol=0.9V
-    //DRV_CPM_SystemClkVrefTrim(CPM_VREF_TRIM_090);
-
+    // Enable low power if sys_fren<60M，trim_vol=0.9V
+    // DRV_CPM_SystemClkVrefTrim(CPM_VREF_TRIM_090);
 }
-
 
 void SystemCoreClockUpdate(void)
 {
-    SystemCoreClock = 160*1000*1000;  //160M
+    SystemCoreClock = 160 * 1000 * 1000; // 160M
 }
 
 void Sys_wdt_close(void)
 {
     WDT_TypeDef *pWDT;
 
-    pWDT  =  (WDT_TypeDef *)(WDT_BASE_ADDR);
+    pWDT = (WDT_TypeDef *)(WDT_BASE_ADDR);
     pWDT->WDT_WCR &= ~WDT_EN; // Close WDT
 }
-
 
 void Sys_tc_close(void)
 {
     TC_TypeDef *pTC;
 
-    pTC = (TC_TypeDef*)(TC_BASE_ADDR);
+    pTC = (TC_TypeDef *)(TC_BASE_ADDR);
     pTC->TCCR = 0; // Close TC
 }
 
 void Sys_delay_us(int count)
 {
     int i;
-    for(i=0; i<count; i++)
+    for (i = 0; i < count; i++)
     {
         __asm("nop");
         __asm("nop");

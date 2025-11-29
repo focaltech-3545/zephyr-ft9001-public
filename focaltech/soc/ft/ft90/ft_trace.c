@@ -17,9 +17,7 @@
 #ifdef FT_TRACE_EN
 #define LINE_MAGIC 0xF5
 
-
 volatile ft_trace_t ft_trace_last_func_info;
-
 
 void ft_set_func_info(unsigned int func_addr, unsigned int line)
 {

@@ -1,6 +1,6 @@
 /**
-    **********************************************************************************
-             Copyright(c) 2020 China Core Co. Ltd.
+  **********************************************************************************
+             Copyright(c) 2025 Focaltech Co. Ltd.
                       All Rights Reserved
   **********************************************************************************
   * @file    cpm_drv.c
@@ -18,12 +18,14 @@ void DRV_CPM_SystemClkOSC320MSelect(void)
 {
     uint32_t data;
     CPM->OCSR |= CPM_OCSR_OSC320M_CLK_EN;
-    while(!(CPM->OCSR & CPM_OCSR_OSC320M_STABLE));
+    while (!(CPM->OCSR & CPM_OCSR_OSC320M_STABLE))
+        ;
 
     data = CPM->CSWCFGR & CPM_CSWCFGR_SOC_CLK_SOURCE_MASK;
     data |= 1;
     CPM->CSWCFGR |= data;
-    while(!(CPM->CSWCFGR & CPM_CSWCFGR_OSC320M_SELECT));
+    while (!(CPM->CSWCFGR & CPM_CSWCFGR_OSC320M_SELECT))
+        ;
 }
 
 void DRV_CPM_SetIpsClkDiv(uint32_t div)
@@ -36,7 +38,5 @@ void DRV_CPM_SetIpsClkDiv(uint32_t div)
     CPM->PCDIVR1 |= data;
     CPM->CDIVUPDR |= CPM_CDIVUPDR_PERIPHERAL_DIV_UPDATE;
 }
-
-
 
 /************************ (C) COPYRIGHT C*Core *****END OF FILE**********************/

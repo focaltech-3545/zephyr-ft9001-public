@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025 Focaltech Systems CO.,Ltd
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef ZEPHYR_FT9001_PINCTRL_COMMON_H_
 #define ZEPHYR_FT9001_PINCTRL_COMMON_H_
 

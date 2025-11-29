@@ -1,7 +1,9 @@
- /*
-*  DESCRIPTION for iomacros.h
-*  	Read/Write macros for memory mapped I/O
-*/
+/**  
+  **********************************************************************************
+             Copyright(c) 2025 Focaltech Co. Ltd.
+                      All Rights Reserved
+  **********************************************************************************
+  */
 
 #ifndef _IOMACROS_H
 #define _IOMACROS_H

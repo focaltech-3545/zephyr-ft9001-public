@@ -1,104 +1,100 @@
 #define DT_DRV_COMPAT ft_ft90_flash_controller
 
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
-#include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/flash.h>
-#include <zephyr/init.h>
-#include <zephyr/logging/log.h>
-#include <stdio.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
-
-#include <ft_trace.h>
 #include "flash_driver.h"
+#include <ft_trace.h>
 
-
-//#define BIT(x) ((1<<x))
+// #define BIT(x) ((1<<x))
 #define FT_FLASH_EX_OP_SET_WP BIT(0)
 #define FT_FLASH_EX_OP_GET_WP BIT(1)
 #define FT_FLASH_EX_OP_CLR_WP BIT(2)
 
 #define FT_FLASH_PROTECT_STATUS_UNSET 0
 
-#define FT_FLASH_FT90_EX_OP_WR_SR  BIT(15)
-#define FT_FLASH_FT90_EX_OP_RD_SR  BIT(14)
+#define FT_FLASH_FT90_EX_OP_WR_SR BIT(15)
+#define FT_FLASH_FT90_EX_OP_RD_SR BIT(14)
 
 #define FT_FLASH_BASE_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_MAX_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_SIZE_PER_ID 0x4000000
 
-
 typedef struct
 {
-        __IO uint32_t CTRLR0;         //0x00
-        __IO uint32_t CTRLR1;         //0x04
-        __IO uint32_t SSIENR;         //0x08
-        __IO uint32_t MWCR;           //0x0c
-        __IO uint32_t SER;            //0x10
-        __IO uint32_t BAUDR;          //0x14
-        __IO uint32_t TXFTLR;         //0x18
-        __IO uint32_t RXFTLR;         //0x1c
-        __IO uint32_t TXFLR;          //0x20
-        __IO uint32_t RXFLR;          //0x24
-        __IO uint32_t SR;             //0x28
-        __IO uint32_t IMR;            //0x2c
-        __IO uint32_t ISR;            //0x30
-        __IO uint32_t RISR;           //0x34
-        __IO uint32_t TXOICR;         //0x38
-        __IO uint32_t RXOICR;         //0x3c
-        __IO uint32_t RXUICR;         //0x40
-        __IO uint32_t reserve_44;     //0x44
-        __IO uint32_t ICR;            //0x48
-        __IO uint32_t DMACR;          //0x4c
-        __IO uint32_t DMATDLR;        //0x50
-        __IO uint32_t DMARDLR;        //0x54
-        __IO uint32_t reserve_58;     //0x58
-        __IO uint32_t reserve_5c;     //0x5c
-        __IO uint32_t DR;             //0x60
-        __IO uint32_t RESERVERED[35]; //0x64~0xec
-        __IO uint32_t RXSDR;          //0xf0
-        __IO uint32_t SPICTRLR0;      //0xf4
-        __IO uint32_t reserve_f8;     //0xf8
-        __IO uint32_t XIPMBR;         //0xfc
-        __IO uint32_t XIPIIR;         //0x100
-        __IO uint32_t XIPWIR;         //0x104
-        __IO uint32_t XIPCR;          //0x108
-        __IO uint32_t XIPSER;         //0x10C
-        __IO uint32_t XRXIOCR;        //0x110
-        __IO uint32_t reserve_114;    //0x114
+    __IO uint32_t CTRLR0;         // 0x00
+    __IO uint32_t CTRLR1;         // 0x04
+    __IO uint32_t SSIENR;         // 0x08
+    __IO uint32_t MWCR;           // 0x0c
+    __IO uint32_t SER;            // 0x10
+    __IO uint32_t BAUDR;          // 0x14
+    __IO uint32_t TXFTLR;         // 0x18
+    __IO uint32_t RXFTLR;         // 0x1c
+    __IO uint32_t TXFLR;          // 0x20
+    __IO uint32_t RXFLR;          // 0x24
+    __IO uint32_t SR;             // 0x28
+    __IO uint32_t IMR;            // 0x2c
+    __IO uint32_t ISR;            // 0x30
+    __IO uint32_t RISR;           // 0x34
+    __IO uint32_t TXOICR;         // 0x38
+    __IO uint32_t RXOICR;         // 0x3c
+    __IO uint32_t RXUICR;         // 0x40
+    __IO uint32_t reserve_44;     // 0x44
+    __IO uint32_t ICR;            // 0x48
+    __IO uint32_t DMACR;          // 0x4c
+    __IO uint32_t DMATDLR;        // 0x50
+    __IO uint32_t DMARDLR;        // 0x54
+    __IO uint32_t reserve_58;     // 0x58
+    __IO uint32_t reserve_5c;     // 0x5c
+    __IO uint32_t DR;             // 0x60
+    __IO uint32_t RESERVERED[35]; // 0x64~0xec
+    __IO uint32_t RXSDR;          // 0xf0
+    __IO uint32_t SPICTRLR0;      // 0xf4
+    __IO uint32_t reserve_f8;     // 0xf8
+    __IO uint32_t XIPMBR;         // 0xfc
+    __IO uint32_t XIPIIR;         // 0x100
+    __IO uint32_t XIPWIR;         // 0x104
+    __IO uint32_t XIPCR;          // 0x108
+    __IO uint32_t XIPSER;         // 0x10C
+    __IO uint32_t XRXIOCR;        // 0x110
+    __IO uint32_t reserve_114;    // 0x114
 } SSI_TypeDef;
 
-
-
-extern struct str_flash ssi_cfg[3];
+extern const struct str_flash g_ssi_cfg[];
 extern uint8_t (*xip_flash_erase)(struct str_flash *p_ssi_para);
 extern uint8_t (*xip_flash_program)(struct str_flash *p_ssi_para);
- void ft_DRV_DCACHE_Invalidate(uint32_t addr, uint32_t size); 
+void ft_DRV_DCACHE_Invalidate(uint32_t addr, uint32_t size);
 static int flash_ft90_erase(const struct device *dev, off_t addr, size_t size);
 
-//LOG_MODULE_REGISTER(flash_ft90_flash, CONFIG_FLASH_LOG_LEVEL);
+// LOG_MODULE_REGISTER(flash_ft90_flash, CONFIG_FLASH_LOG_LEVEL);
 
 static const struct flash_parameters flash_ft90_parameters = {
-	.write_block_size = 1,
-	.erase_value = 0xff,
+    .write_block_size = 1,
+    .erase_value = 0xff,
 };
-
 
 static uint32_t drv_ssi_get_ssi_id(uint32_t addr)
 {
     uint32_t ssi_id = 0;
 
-    if ((addr >= FT_FLASH_BASE_ADDR) && (addr < FT_FLASH_BASE_ADDR+FT_FLASH_SIZE_PER_ID))
+    if ((addr >= FT_FLASH_BASE_ADDR) && (addr < FT_FLASH_BASE_ADDR + FT_FLASH_SIZE_PER_ID))
     {
         ssi_id = 1; /*SSI1*/
     }
-    else if ((addr >= FT_FLASH_BASE_ADDR+FT_FLASH_SIZE_PER_ID) && (addr < FT_FLASH_BASE_ADDR+FT_FLASH_SIZE_PER_ID*2))
+    else if ((addr >= FT_FLASH_BASE_ADDR + FT_FLASH_SIZE_PER_ID) &&
+             (addr < FT_FLASH_BASE_ADDR + FT_FLASH_SIZE_PER_ID * 2))
     {
         ssi_id = 2; /*SSI2*/
     }
-    else if ((addr >= FT_FLASH_BASE_ADDR+FT_FLASH_SIZE_PER_ID*2) && (addr < FT_FLASH_BASE_ADDR+FT_FLASH_SIZE_PER_ID*3))
+    else if ((addr >= FT_FLASH_BASE_ADDR + FT_FLASH_SIZE_PER_ID * 2) &&
+             (addr < FT_FLASH_BASE_ADDR + FT_FLASH_SIZE_PER_ID * 3))
     {
         ssi_id = 3; /*SSI3*/
     }
@@ -110,15 +106,17 @@ static uint32_t drv_ssi_get_ssi_id(uint32_t addr)
 
 #define CCM_SSICFG (*(volatile uint32_t *)(0x40001000 + 0x3c))
 
-#define FT_NOP()				\
-	do {	  __builtin_arm_nop();		\
-		      __builtin_arm_nop();	\
-		      __builtin_arm_nop();	\
-	}while(0)
-
+#define FT_NOP()                                                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        __builtin_arm_nop();                                                                                           \
+        __builtin_arm_nop();                                                                                           \
+        __builtin_arm_nop();                                                                                           \
+    } while (0)
+#if 1
 __attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t st)
 {
- 
+
 #define SSI_ID 1
 #define SRx 1
     
@@ -212,19 +210,26 @@ exit:
     arch_irq_unlock(reg);
     return temp&0xff;
 }
+#else
 
+uint8_t wr_FlashSRx(uint8_t st)
+{
+    return 0;
+}
 #endif
-
+#endif
 
 static uint8_t drv_xip_flash_erase(uint32_t addr)
 {
     uint8_t ssi_id = drv_ssi_get_ssi_id(addr);
+    
+    struct str_flash ssi_cfg;
+    memcpy(&ssi_cfg,&g_ssi_cfg[ssi_id - 1],sizeof( struct str_flash));
+    ssi_cfg.SsiId = ssi_id;
+    ssi_cfg.Cmd = SECT_ERASE_CMD;
+    ssi_cfg.Addr = addr & 0x03ffffff;
 
-    ssi_cfg[ssi_id - 1].SsiId = ssi_id;
-    ssi_cfg[ssi_id - 1].Cmd = SECT_ERASE_CMD;
-    ssi_cfg[ssi_id - 1].Addr = addr & 0x03ffffff;
-
-    xip_flash_erase(&ssi_cfg[ssi_id - 1]);
+    xip_flash_erase(&ssi_cfg);
     return 0;
 }
 
@@ -238,19 +243,22 @@ static uint8_t hal_xip_flash_erase(uint32_t addr)
 static uint8_t drv_xip_flash_erase_block(uint32_t addr)
 {
     uint8_t ssi_id = drv_ssi_get_ssi_id(addr);
+    struct str_flash ssi_cfg;
 
     if (ssi_id == 1) // 0x10001000~0x101FFFFF
     {
-        if ((addr >= FT_FLASH_BASE_ADDR+FT_FLASH_MAX_SIZE) || (addr <= FT_FLASH_BASE_ADDR))
+        if ((addr >= FT_FLASH_BASE_ADDR + FT_FLASH_MAX_SIZE) || (addr <= FT_FLASH_BASE_ADDR))
         {
             return 1;
         }
     }
-    ssi_cfg[ssi_id - 1].SsiId = ssi_id;
-    ssi_cfg[ssi_id - 1].Cmd = BLOCK_ERASE_CMD;
-    ssi_cfg[ssi_id - 1].Addr = addr & 0x03ffffff;
+    
+    memcpy(&ssi_cfg,&g_ssi_cfg[ssi_id - 1],sizeof( struct str_flash));
+    ssi_cfg.SsiId = ssi_id;
+    ssi_cfg.Cmd = BLOCK_ERASE_CMD;
+    ssi_cfg.Addr = addr & 0x03ffffff;
 
-    xip_flash_erase(&ssi_cfg[ssi_id - 1]);
+    xip_flash_erase(&ssi_cfg);
     return 0;
 }
 
@@ -264,19 +272,22 @@ static uint8_t hal_xip_flash_erase_block(uint32_t addr)
 static uint8_t drv_xip_flash_erase_page(uint32_t addr)
 {
     uint8_t ssi_id = drv_ssi_get_ssi_id(addr);
+    struct str_flash ssi_cfg;
 
     if (ssi_id == 1) // 0x10001000~0x101FFFFF
     {
-        if ((addr >=  FT_FLASH_BASE_ADDR+FT_FLASH_MAX_SIZE) || (addr <= FT_FLASH_BASE_ADDR))
+        if ((addr >= FT_FLASH_BASE_ADDR + FT_FLASH_MAX_SIZE) || (addr <= FT_FLASH_BASE_ADDR))
         {
             return 1;
         }
     }
-    ssi_cfg[ssi_id - 1].SsiId = ssi_id;
-    ssi_cfg[ssi_id - 1].Cmd = PAGE_ERASE_CMD; // PAGE_ERASE_CMD;//SECT_ERASE_CMD;
-    ssi_cfg[ssi_id - 1].Addr = addr & 0x03ffffff;
+    
+    memcpy(&ssi_cfg,&g_ssi_cfg[ssi_id - 1],sizeof( struct str_flash));
+    ssi_cfg.SsiId = ssi_id;
+    ssi_cfg.Cmd = PAGE_ERASE_CMD;
+    ssi_cfg.Addr = addr & 0x03ffffff;
 
-    xip_flash_erase(&ssi_cfg[ssi_id - 1]);
+    xip_flash_erase(&ssi_cfg);
     return 0;
 }
 
@@ -314,24 +325,25 @@ uint8_t ft_flash_erase_block(uint32_t addr)
 static uint8_t drv_xip_flash_program(uint32_t addr, uint8_t *p_buff, uint32_t len)
 {
     uint8_t ssi_id = drv_ssi_get_ssi_id(addr);
+    struct str_flash ssi_cfg;
     if (ssi_id == 1) // 0x10001000~0x101FFFFF
     {
-        if ((addr >= FT_FLASH_BASE_ADDR+FT_FLASH_MAX_SIZE) || (addr < FT_FLASH_BASE_ADDR))
+        if ((addr >= FT_FLASH_BASE_ADDR + FT_FLASH_MAX_SIZE) || (addr < FT_FLASH_BASE_ADDR))
         {
             return 1;
         }
     }
 
-    ssi_cfg[ssi_id - 1].SsiId = ssi_id;
-    ssi_cfg[ssi_id - 1].Cmd = QUAD_PROG_CMD;
-    ssi_cfg[ssi_id - 1].Value = 0x00;
-    ssi_cfg[ssi_id - 1].ProgramMode = QUAD_PROGRAM;
+    memcpy(&ssi_cfg,&g_ssi_cfg[ssi_id - 1],sizeof( struct str_flash));
+    ssi_cfg.SsiId = ssi_id;
+    ssi_cfg.Cmd = QUAD_PROG_CMD;
+    ssi_cfg.Value = 0x00;
+    ssi_cfg.ProgramMode = QUAD_PROGRAM;
+    ssi_cfg.Addr = addr & 0x03ffffff;
+    ssi_cfg.Len = len;
+    ssi_cfg.Buf = (uint32_t)p_buff;
 
-    ssi_cfg[ssi_id - 1].Addr = addr & 0x03ffffff;
-    ssi_cfg[ssi_id - 1].Len = len;
-    ssi_cfg[ssi_id - 1].Buf = (uint32_t)p_buff;
-
-    xip_flash_program(&ssi_cfg[ssi_id - 1]);
+    xip_flash_program(&ssi_cfg);
     return 0;
 }
 
@@ -363,7 +375,7 @@ static int flash_bulk_program(uint32_t addr, const uint8_t *data, uint32_t len)
         ptr += FLASH_PAGE_SIZE;
     }
     // remain data
-    if (ret == 0&&remain!=0)
+    if (ret == 0 && remain != 0)
     {
         ret = hal_xip_flash_program(start_addr, ptr, remain);
     }
@@ -433,7 +445,7 @@ static int flash_erase_data(uint32_t addr, uint32_t len)
 }
 
 /*
-**When writing data to flash, the function includes boundary checks on the flash addresses. 
+**When writing data to flash, the function includes boundary checks on the flash addresses.
 **In addition, the flash_erase_data function should be called to erase data before writing.
 */
 
@@ -455,7 +467,7 @@ static int flash_write_data(uint32_t addr, uint8_t *data, uint32_t len)
     do
     {
 
-        if ((start_addr < FT_FLASH_BASE_ADDR) || (start_addr >=FT_FLASH_MAX_SIZE+FT_FLASH_BASE_ADDR) )
+        if ((start_addr < FT_FLASH_BASE_ADDR) || (start_addr >= FT_FLASH_MAX_SIZE + FT_FLASH_BASE_ADDR))
         {
             printk("this app addr or len is wrong(%08x, %x)", start_addr, len);
             ret = -1;
@@ -465,7 +477,6 @@ static int flash_write_data(uint32_t addr, uint8_t *data, uint32_t len)
         {
 
             ret = flash_bulk_program(addr, data, len);
-
 
             if (ret == 0)
             {
@@ -494,158 +505,159 @@ static int flash_write_data(uint32_t addr, uint8_t *data, uint32_t len)
 
 static int flash_ft90_read(const struct device *dev, off_t addr, void *dest, size_t size)
 {
-	uint32_t physical_addr=addr|FT_FLASH_BASE_ADDR;
+    uint32_t physical_addr = addr | FT_FLASH_BASE_ADDR;
 
-	flash_read_data(physical_addr, dest, size);
-	return 0;
+    flash_read_data(physical_addr, dest, size);
+    return 0;
 }
 
-static int flash_ft90_write(const struct device *dev, off_t addr, const void *src,
-				      size_t size)
+static int flash_ft90_write(const struct device *dev, off_t addr, const void *src, size_t size)
 {
-	uint32_t physical_addr=addr|FT_FLASH_BASE_ADDR;
-	off_t offset=addr%SSI_PAGE_SIZE;
-	int ret=0;
+    uint32_t physical_addr = addr | FT_FLASH_BASE_ADDR;
+    off_t offset = addr % SSI_PAGE_SIZE;
+    int ret = 0;
 
+    if (offset)
+    {
+        uint8_t page_read_back[SSI_PAGE_SIZE];
+        memset(page_read_back, 0xff, SSI_PAGE_SIZE);
 
-	if(offset){
-	    uint8_t page_read_back[SSI_PAGE_SIZE];
-	    memset(page_read_back,0xff,SSI_PAGE_SIZE);
+        off_t addr_priv = (addr / SSI_PAGE_SIZE) * SSI_PAGE_SIZE;
+        flash_ft90_read(dev, addr_priv, page_read_back, offset);
+        offset = SSI_PAGE_SIZE - offset;
+        if (size > offset)
+        {
+            memcpy(page_read_back + SSI_PAGE_SIZE - offset, src, offset);
+        }
+        else
+        {
+            memcpy(page_read_back + SSI_PAGE_SIZE - offset, src, size);
+        }
 
-	    off_t addr_priv=(addr/SSI_PAGE_SIZE)*SSI_PAGE_SIZE;
-	    flash_ft90_read(dev,addr_priv,page_read_back,offset);
-	    offset=SSI_PAGE_SIZE-offset;
-	    if(size>offset){
-		memcpy(page_read_back+SSI_PAGE_SIZE-offset,src,offset);
-	    }else{
-		memcpy(page_read_back+SSI_PAGE_SIZE-offset,src,size);
-	    }
+        flash_ft90_erase(dev, addr_priv, SSI_PAGE_SIZE);
+        physical_addr = addr_priv | FT_FLASH_BASE_ADDR;
 
-	    flash_ft90_erase(dev,addr_priv,SSI_PAGE_SIZE);
-	    physical_addr=addr_priv|FT_FLASH_BASE_ADDR;
+        ret = flash_write_data(physical_addr, page_read_back, SSI_PAGE_SIZE);
+        if (ret)
+        {
 
-	    ret = flash_write_data(physical_addr, page_read_back, SSI_PAGE_SIZE);
-	    if(ret){
+            printk("flash write failed1\n");
+            return ret;
+        }
 
-		printk("flash write failed1\n");
-		return ret;
-	    }
+        if (size > offset)
+        {
+            physical_addr = physical_addr + SSI_PAGE_SIZE;
+            ret = flash_write_data(physical_addr, (uint8_t *)src + offset, size - offset);
 
+            if (ret)
+            {
+                printk("flash write failed2\n");
+            }
+        }
+        return ret;
+    }
 
-	    if(size>offset){
-		 physical_addr=physical_addr+SSI_PAGE_SIZE;
-		 ret = flash_write_data(physical_addr, (uint8_t*)src+offset, size-offset);
-
-		 if(ret){
-			printk("flash write failed2\n");
-		 }
-	    }
-	    return ret;
-	}
-
-	
-	 ret = flash_write_data(physical_addr, (uint8_t*)src, size);
-	return ret;
+    ret = flash_write_data(physical_addr, (uint8_t *)src, size);
+    return ret;
 }
 
 static int flash_ft90_erase(const struct device *dev, off_t addr, size_t size)
 {
-	
-	uint32_t physical_addr=addr|FT_FLASH_BASE_ADDR;
 
-	flash_erase_data(physical_addr, size);
-	return 0;
+    uint32_t physical_addr = addr | FT_FLASH_BASE_ADDR;
+
+    flash_erase_data(physical_addr, size);
+    return 0;
 }
-
-
 
 static int flash_ft90_init(const struct device *dev)
 {
-	ARG_UNUSED(dev);
-	ft_xip_flash_init();
+    ARG_UNUSED(dev);
+    ft_xip_flash_init();
 
-	return 0;
+    return 0;
 }
-
 
 #if defined(CONFIG_FLASH_EX_OP_ENABLED)
 
-static int flash_ft90_ex_op(const struct device *dev, uint16_t code,
-                               const uintptr_t in, void *out)
+static int flash_ft90_ex_op(const struct device *dev, uint16_t code, const uintptr_t in, void *out)
 {
-	
-	ARG_UNUSED(dev);
-	uint8_t *value;
-		
-	switch(code){
-	    
-	    case FT_FLASH_EX_OP_SET_WP:
-		if(out){
-		    value=(uint8_t*)out;
-		    printk("unsupport wp right now,ingnore,enable=%d\n",*value);
-		}
-		break;
 
-	    case FT_FLASH_EX_OP_GET_WP:
-		printk("unsupport wp right now,ingnore\n");
-		    if(in){
-			value=(uint8_t*)in;
-			*value=0;
-		    }
-		    break;
-	    
-        case FT_FLASH_FT90_EX_OP_WR_SR:
-		value=(uint8_t*)out;
+    ARG_UNUSED(dev);
+    uint8_t *value;
 
-	    //		printk("WR sr=%d",*value);
-		if(*value>0x7f){
+    switch (code)
+    {
 
-		    printk("wrong value\n");
-		    return 0;
-		}
+    case FT_FLASH_EX_OP_SET_WP:
+        if (out)
+        {
+            value = (uint8_t *)out;
+            printk("unsupport wp right now,ingnore,enable=%d\n", *value);
+        }
+        break;
 
-		wr_FlashSRx(*value);
+    case FT_FLASH_EX_OP_GET_WP:
+        printk("unsupport wp right now,ingnore\n");
+        if (in)
+        {
+            value = (uint8_t *)in;
+            *value = 0;
+        }
+        break;
 
-		break;
+    case FT_FLASH_FT90_EX_OP_WR_SR:
+        value = (uint8_t *)out;
 
-        case FT_FLASH_FT90_EX_OP_RD_SR:
-		value=(uint8_t*)in;
-		*value=wr_FlashSRx(0x80);
-		//printk("RD sr=%d",*value);
-		break;
+        //		printk("WR sr=%d",*value);
+        if (*value > 0x7f)
+        {
 
-		default :break;
-	}
+            printk("wrong value\n");
+            return 0;
+        }
 
-	return 0;
+        wr_FlashSRx(*value);
+
+        break;
+
+    case FT_FLASH_FT90_EX_OP_RD_SR:
+        value = (uint8_t *)in;
+        *value = wr_FlashSRx(0x80);
+        // printk("RD sr=%d",*value);
+        break;
+
+    default:
+        break;
+    }
+
+    return 0;
 }
 
 #endif
-
-
 
 static const struct flash_parameters *flash_ft90_get_parameters(const struct device *dev)
 {
-	//const struct flash_ft90_config *config = dev->config;
-	ARG_UNUSED(dev);
+    // const struct flash_ft90_config *config = dev->config;
+    ARG_UNUSED(dev);
 
-	return &flash_ft90_parameters;//config->parameters;
+    return &flash_ft90_parameters; // config->parameters;
 }
 
 static const struct flash_driver_api flash_ft90_api = {
-	.read = flash_ft90_read,
-	.write = flash_ft90_write,
-	.erase = flash_ft90_erase,
-	.get_parameters = flash_ft90_get_parameters,
+    .read = flash_ft90_read,
+    .write = flash_ft90_write,
+    .erase = flash_ft90_erase,
+    .get_parameters = flash_ft90_get_parameters,
 #if defined(CONFIG_FLASH_EX_OP_ENABLED)
-	.ex_op=flash_ft90_ex_op,
+    .ex_op = flash_ft90_ex_op,
 #endif
 };
 
-#define FLASH_FT_INIT(n)                                        \
-                                                                            \
-	DEVICE_DT_INST_DEFINE(n, &flash_ft90_init, NULL, NULL,              \
-			      NULL, POST_KERNEL,                            \
-			      CONFIG_FLASH_FT_FT90_INIT_PRIORITY, &flash_ft90_api);
+#define FLASH_FT_INIT(n)                                                                                               \
+                                                                                                                       \
+    DEVICE_DT_INST_DEFINE(n, &flash_ft90_init, NULL, NULL, NULL, POST_KERNEL, CONFIG_FLASH_FT_FT90_INIT_PRIORITY,      \
+                          &flash_ft90_api);
 
 DT_INST_FOREACH_STATUS_OKAY(FLASH_FT_INIT)

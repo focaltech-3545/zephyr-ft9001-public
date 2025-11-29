@@ -1,8 +1,6 @@
 /**
-  ******************************************************************************
-             Copyright(c) 2020 China Core Co. Ltd.
+ 			Copyright(c) 2025 Focaltech Co. Ltd.
                       All Rights Reserved
-  ******************************************************************************
   * @file    cache_drv.h
   * @author  Product application department
   * @version V1.0

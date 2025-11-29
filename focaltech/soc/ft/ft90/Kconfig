@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
 # SPDX-License-Identifier: Apache-2.0
 
 config SOC_SERIES_FT90
@@ -18,4 +18,4 @@ config SOC_FT9002S
 config SOC_FT9001
         select HAS_FOCALTECH_HAL
         select HAS_FT9001LIB
-	#select HAS_PM
+	select HAS_PM

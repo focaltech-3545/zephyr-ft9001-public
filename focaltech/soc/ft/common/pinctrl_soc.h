@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Focaltech Systems CO.,Ltd
+ * Copyright (c) 2025 Focaltech Systems CO.,Ltd
  *
  * SPDX-License-Identifier: Apache-2.0
  */

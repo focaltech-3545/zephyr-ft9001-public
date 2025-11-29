@@ -83,7 +83,7 @@
 };
 
 &eport5 {
-	mask = <0xFF>;
+	mask = <0xff>;
 	ngpios = <8>;
 	status = "okay";
 };

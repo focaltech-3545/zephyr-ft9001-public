@@ -22,6 +22,8 @@
 void __attribute__((section(".ramfunc"))) xip_clock_switch(uint32_t clk_div);
 void __attribute__((section(".ramfunc"))) xip_reback_boot(void);
 
+void ft_pm_enter_deep_sleep(bool enable);
+
 #endif /* _ASMLANGUAGE */
 
 #endif /* _SOC_ARM_FOCALTECH_FT90_SOC_H_ */

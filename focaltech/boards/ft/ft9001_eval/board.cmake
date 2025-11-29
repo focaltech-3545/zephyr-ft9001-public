@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Focaltech Systems CO.,Ltd
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
 # SPDX-License-Identifier: Apache-2.0
 
 board_runner_args(jlink "--device=FT9001" "--speed=4000")

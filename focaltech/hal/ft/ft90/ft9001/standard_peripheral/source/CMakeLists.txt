@@ -1,6 +1,6 @@
 # Makefile - FOCALTECHLIB SDK
 #
-# Copyright (c) 2025 Neldtv
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -26,6 +26,7 @@ if(CONFIG_HAS_FT9001LIB)
     zephyr_library_sources_ifdef(CONFIG_USE_FOCALTECH_HAL_UART    drv/uart_drv.c)
     zephyr_library_sources_ifdef(CONFIG_USE_FOCALTECH_HAL_WDT     drv/wdt_drv.c)
     zephyr_library_sources_ifdef(CONFIG_USE_FOCALTECH_HAL_TC      drv/tc_drv.c)	
+    zephyr_library_sources_ifdef(CONFIG_PM                      drv/lowpower_drv.c)
   endif() #CONFIG_HAS_FOCALTECH_EXT_LIB
 
 

@@ -14,7 +14,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2018 Focaltech</center></h2>
+  * <h2><center>&copy; Copyright(c) 2025 Focaltech Co. Ltd.
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:

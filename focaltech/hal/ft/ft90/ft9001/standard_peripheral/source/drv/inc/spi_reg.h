@@ -1,7 +1,9 @@
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// File name    : spi_reg.h
-// Version      : V0.1
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/**  
+  **********************************************************************************
+             Copyright(c) 2025 Focaltech Co. Ltd.
+                      All Rights Reserved
+  **********************************************************************************
+  */
 
 #ifndef SPI_REG_H_
 #define SPI_REG_H_
@@ -34,7 +36,7 @@ typedef struct
 	__IO unsigned char SPIIRSP; //0x010
 	__IO unsigned char RESERVED1[1]; //0x11
 
-union
+	union
 	{
 		__IO unsigned short SPIDRHW; //0x12
 		struct

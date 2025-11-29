@@ -1,7 +1,9 @@
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// File name    : cache_drv.c
-// Version      : V0.1
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/**
+  **********************************************************************************
+             Copyright(c) 2025 Focaltech Co. Ltd.
+                      All Rights Reserved
+  **********************************************************************************
+  */
 
 #include "cache_drv.h"
 
@@ -17,19 +19,15 @@
  *              cacheThrough, cacheBack or cacheOff
  *              spim3: The attributes of spim1 memory regions
  *              cacheThrough, cacheBack or cacheOff
- * @note 
+ * @note
  * @retval NONE
-*/
-void DRV_ICACHE_Init(CACHE_ComTypeDef boot,
-                     CACHE_ComTypeDef rom,
-                     CACHE_ComTypeDef spim1,
-                     CACHE_ComTypeDef spim2,
-                     CACHE_ComTypeDef spim3,
-                     uint32_t base)
+ */
+void DRV_ICACHE_Init(CACHE_ComTypeDef boot, CACHE_ComTypeDef rom, CACHE_ComTypeDef spim1, CACHE_ComTypeDef spim2,
+                     CACHE_ComTypeDef spim3, uint32_t base)
 {
     CACHE_TypeDef *ICACHE = (CACHE_TypeDef *)base;
-    //#define ICACHE                              ((CACHE_TypeDef *)(CACHE_BASE_ADDR))
-    //#define DCACHE                              ((CACHE_TypeDef *)(CACHE2_BASE_ADDR))
+    // #define ICACHE                              ((CACHE_TypeDef *)(CACHE_BASE_ADDR))
+    // #define DCACHE                              ((CACHE_TypeDef *)(CACHE2_BASE_ADDR))
     /*boot cache configuration*/
     if (CACHE_Off == boot)
     {
@@ -128,15 +126,11 @@ void DRV_ICACHE_Init(CACHE_ComTypeDef boot,
  *              cacheThrough, cacheBack or cacheOff
  *              spim3: The attributes of spim1 memory regions
  *              cacheThrough, cacheBack or cacheOff
- * @note 
+ * @note
  * @retval NONE
-*/
-void DRV_DCACHE_Init(CACHE_ComTypeDef boot,
-                     CACHE_ComTypeDef rom,
-                     CACHE_ComTypeDef spim1,
-                     CACHE_ComTypeDef spim2,
-                     CACHE_ComTypeDef spim3,
-                     uint32_t base)
+ */
+void DRV_DCACHE_Init(CACHE_ComTypeDef boot, CACHE_ComTypeDef rom, CACHE_ComTypeDef spim1, CACHE_ComTypeDef spim2,
+                     CACHE_ComTypeDef spim3, uint32_t base)
 {
     CACHE_TypeDef *DCACHE = (CACHE_TypeDef *)base;
     /*boot cache configuration*/
@@ -231,13 +225,13 @@ void DRV_DCACHE_Init(CACHE_ComTypeDef boot,
  *                  no need 16-bytes aligned.
  * @param[in] size: The length of memory need to invalidate,
  *                  no need 16-bytes aligned.
- * @note 
+ * @note
  * @retval NONE
-*/
+ */
 void DRV_ICACHE_Invalidate(uint32_t addr, uint32_t size, uint32_t base)
 {
     CACHE_TypeDef *ICACHE = (CACHE_TypeDef *)base;
-    if (ICACHE->CACHE_CCR & ENCACHE) 
+    if (ICACHE->CACHE_CCR & ENCACHE)
     {
         size = (((addr & 0x0f) + size) + 0x0f) & ~0x0f;
         addr = addr & ~0x0f;
@@ -255,13 +249,13 @@ void DRV_ICACHE_Invalidate(uint32_t addr, uint32_t size, uint32_t base)
  *                  no need 16-bytes aligned.
  * @param[in] size: The length of memory need to invalidate,
  *                  no need 16-bytes aligned.
- * @note 
+ * @note
  * @retval NONE
-*/
+ */
 void DRV_DCACHE_Invalidate(uint32_t addr, uint32_t size, uint32_t base)
 {
     CACHE_TypeDef *DCACHE = (CACHE_TypeDef *)base;
-    if (DCACHE->CACHE_CCR & ENCACHE) 
+    if (DCACHE->CACHE_CCR & ENCACHE)
     {
         size = (((addr & 0x0f) + size) + 0x0f) & ~0x0f;
         addr = addr & ~0x0f;

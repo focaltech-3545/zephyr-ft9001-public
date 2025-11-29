@@ -4,28 +4,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <inttypes.h>
+#include <kernel_internal.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
-#include <kernel_internal.h>
-#include <inttypes.h>
-//#include <zephyr/arch/common/exc_handle.h>
+// #include <zephyr/arch/common/exc_handle.h>
+#include <string.h>
 #include <zephyr/linker/linker-defs.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/barrier.h>
-#include <string.h>
 
 #include "system_ft9001.h"
 
-//extern char _ramfunc_start[];
-//extern char _ramfunc_end[];
-//extern char _ramfunc_load_start[]; // Flash 中的源地址
+// extern char _ramfunc_start[];
+// extern char _ramfunc_end[];
+// extern char _ramfunc_load_start[]; // Flash 中的源地址
 uint32_t var_sram_data = 10U;
 
-void copy_ramfunc(void) {
+void copy_ramfunc(void)
+{
     size_t size = __ramfunc_end - __ramfunc_start;
     memcpy(__ramfunc_start, __ramfunc_load_start, size);
-    
-    //delay a while
+
+    // delay a while
     __asm("nop");
     __asm("nop");
     __asm("nop");
@@ -38,10 +39,11 @@ void copy_ramfunc(void) {
 
 void __attribute__((section(".ramfunc"))) xip_clock_switch(uint32_t clk_div)
 {
-    *(volatile unsigned int*)(0x40004008) = ((*(volatile unsigned int*)(0x40004008)) & 0xFFFFFFF0) | (clk_div & 0x0F); //set parameters
-    *(volatile unsigned int*)(0x40004018) = *(volatile unsigned int*)(0x40004018) | (0x02); //update
+    *(volatile unsigned int *)(0x40004008) =
+        ((*(volatile unsigned int *)(0x40004008)) & 0xFFFFFFF0) | (clk_div & 0x0F);           // set parameters
+    *(volatile unsigned int *)(0x40004018) = *(volatile unsigned int *)(0x40004018) | (0x02); // update
 
-    //delay a while
+    // delay a while
     __asm("nop");
     __asm("nop");
     __asm("nop");
@@ -52,7 +54,7 @@ void __attribute__((section(".ramfunc"))) xip_clock_switch(uint32_t clk_div)
     __asm("nop");
 }
 
-
+#if 0
 void __attribute__((section(".ramfunc"))) xip_reback_boot(void)
 {
     uint32_t primask_bit;
@@ -157,3 +159,5 @@ void __attribute__((section(".ramfunc"))) function_in_sram(void)
 while(1);
 }
 */
+
+#endif

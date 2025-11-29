@@ -8,6 +8,7 @@ zephyr_sources(soc.c)
 zephyr_sources(ft_sys.c)
 
 zephyr_include_directories(.)
+zephyr_library_sources_ifdef(CONFIG_PM power.c)
 
 if(CONFIG_HAS_FT9001LIB)
 

@@ -1,7 +1,10 @@
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// File name    : tc_drv.h
-// Version      : V0.1
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/**  
+  **********************************************************************************
+             Copyright(c) 2025 Focaltech Co. Ltd.
+                      All Rights Reserved
+  **********************************************************************************
+  */
+
 #ifndef TC_DRV_H_
 #define TC_DRV_H_
 
@@ -21,28 +24,27 @@ typedef enum
 }TC_TIMER_PRESCALER;
 
 /**
-  * @brief Start the hardware timer by clearing stop and low-power mode bits.
-  *
-  * @param tctd Pointer to the timer register structure (TC_TypeDef).
-  *
-  * The following bits are cleared:
-  * - TC_WAIT: Timer stops in WAIT mode
-  * - TC_DOZE: Timer halts in DOZE mode
-  * - TC_STOP: Master stop bit for timer operation
-  * - TC_DEBUG: Timer halts during debug halt
-  *
-  *@return NONE
-  */
-extern void Timer_Start(TC_TypeDef* tctd);
+   * @brief Setting the hardware timer with specified mode configuration.
+   *
+   * @param tctd Pointer to the timer register structure (TC_TypeDef).
+   * @param mode Timer operation mode:
+   *             - 0: Normal mode (Timer runs in normal mode)
+   *             - 1: Debug mode (Timer runs in debug mode)
+   *             - 2: Stop mode (Timer runs in stop mode)
+   *             - 3: Doze mode (Timer runs in doze mode)
+   *             - 4: Wait mode (Timer runs in wait mode)
+   *             - Other: Default to Normal mode
+   *
+   * Bit definitions:
+   * - TC_WAIT:  Timer behavior in WAIT mode
+   * - TC_DOZE:  Timer behavior in DOZE mode
+   * - TC_STOP:  Timer behavior in STOP mode
+   * - TC_DBG:   Timer behavior in DBG  mode
+   *
+   * @return None
+   */
+extern void Timer_SetMode(TC_TypeDef* tctd, uint8_t mode);
 
-/**
-  * @brief Stop the timer by setting the master stop bit.
-  *
-  * @param[in] tctd Pointer to the timer control register structure.
-  *
-  * @return NONE
-  */
-extern void Timer_Stop(TC_TypeDef* tctd);
 
 /**
   * @brief Get the current timer count value.
@@ -51,7 +53,7 @@ extern void Timer_Stop(TC_TypeDef* tctd);
   *
   * @return Current count value of the timer.
   */
-extern uint32_t Timer_Get_Count(TC_TypeDef* tctd);
+extern uint32_t Timer_GetCount(TC_TypeDef* tctd);
  
 /**
   * @brief Get the timer load value.
@@ -60,7 +62,7 @@ extern uint32_t Timer_Get_Count(TC_TypeDef* tctd);
   *
   * @return Current load value of the timer.
   */
-extern uint32_t Timer_Get_Loadvalue(TC_TypeDef* tctd);
+extern uint32_t Timer_GetLoadvalue(TC_TypeDef* tctd);
  
 /**
   * @brief TC: Set the load value and enable auto-reload on zero.
@@ -70,7 +72,7 @@ extern uint32_t Timer_Get_Loadvalue(TC_TypeDef* tctd);
   *
   * @return None
   */
-extern void Timer_Set_Loadvalue(TC_TypeDef* tctd, uint32_t value);
+extern void Timer_SetLoadvalue(TC_TypeDef* tctd, uint32_t value);
  
 /**
   * @brief TC: Enable interrupt on counter reaching zero.
@@ -79,7 +81,7 @@ extern void Timer_Set_Loadvalue(TC_TypeDef* tctd, uint32_t value);
   *
   * @return None
   */
-extern void Timer_Int_Enable(TC_TypeDef* tctd);
+extern void Timer_IntEnable(TC_TypeDef* tctd);
 
 /**
   * @brief TC: Clear the timer interrupt flag.
@@ -88,7 +90,7 @@ extern void Timer_Int_Enable(TC_TypeDef* tctd);
   *
   * @return None
   */
-extern void Timer_IntFlag_Clear(TC_TypeDef* tctd);
+extern void Timer_IntFlagClear(TC_TypeDef* tctd);
 
 /**
   * @brief TC: Disable reset function on zero count.
@@ -97,7 +99,7 @@ extern void Timer_IntFlag_Clear(TC_TypeDef* tctd);
   *
   * @return None
   */
-extern void Timer_Rst_Disable(TC_TypeDef* tctd);
+extern void Timer_RstDisable(TC_TypeDef* tctd);
 
 /**
   * @brief TC: Disable timer interrupt.
@@ -106,7 +108,7 @@ extern void Timer_Rst_Disable(TC_TypeDef* tctd);
   *
   * @return None
   */
-extern void Timer_Int_Disable(TC_TypeDef* tctd);
+extern void Timer_IntDisable(TC_TypeDef* tctd);
 
 /**
   * @brief TC: Set the timer prescaler value.
@@ -116,6 +118,19 @@ extern void Timer_Int_Disable(TC_TypeDef* tctd);
   *
   * @return None
   */
-extern void Timer_Set_Prescaler(TC_TypeDef* tctd, uint16_t prescaler);
+extern void Timer_SetPrescaler(TC_TypeDef* tctd, uint16_t prescaler);
+
+/**
+  * @brief TC: Set the timer alarm value (relative expiration).
+  *
+  *
+  * @param[in] tctd   tctd Pointer to the timer control register structure.
+  * @param[in] value  Alarm value .
+  *
+  * @return None
+  */
+extern void Timer_SetAlarmValue(TC_TypeDef* tctd, uint32_t value);
+
+
 
 #endif

@@ -1,6 +1,6 @@
 /**
   **********************************************************************************
-             Copyright(c) 2020 Focaltech Systems CO.,Ltd
+             Copyright(c) 2025 Focaltech Systems CO.,Ltd
                       All Rights Reserved
   **********************************************************************************
   * @file    GetSN.h

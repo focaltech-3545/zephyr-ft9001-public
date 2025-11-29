@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Neldtv
+# Copyright (c) 2025 Focaltech Systems CO.,Ltd
 # SPDX-License-Identifier: Apache-2.0
 
 
@@ -10,6 +10,8 @@ config UDC_FOCALTECH
 	select USE_FOCALTECH_HAL_USB
 	help
 	  ccm for an USB device controller driver.
+
+if UDC_FOCALTECH
 
 config UDC_FT_STACK_SIZE
 	int "UDC controller driver internal thread stack size"
@@ -37,4 +39,4 @@ config UDC_FT_MAX_QMESSAGES
 #	help
 #	  Enable Buffer DMA if DWC2 USB controller supports Internal DMA.
 #	
-
+endif # UDC_FOCALTECH
