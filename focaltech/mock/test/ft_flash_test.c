@@ -10,11 +10,12 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 
-#include <zephyr/devicetree.h>
 #include <zephyr/drivers/flash.h>
+#include <zephyr/devicetree.h>
 #include <zephyr/storage/flash_map.h>
 
 #include "flash_driver.h"
+
 
 void gpio_init(void);
 
@@ -23,8 +24,8 @@ void gpio_init(void);
 #if 1
 int ft_flash_test(void)
 {
-
-#if 0
+ 
+   #if 0
     int j, ret;
 
     uint8_t send[8] = {0x04, 0xFB, 0x9A, 0x8B, 0x96, 0x69, 0x55, 0xAA};
@@ -67,16 +68,16 @@ int ft_flash_test(void)
 
 #if 0
 
-#include "gpio_drv.h"
-#include "spi_drv.h"
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/kernel.h>
+#include "gpio_drv.h"
+#include "spi_drv.h"
 
-#define SENSOR_RST_PIN 2
-#define SENSOR_INT_PIN 0
+#define SENSOR_RST_PIN  2
+#define SENSOR_INT_PIN  0
 
 static const struct device *gpio_dev5;
 
@@ -111,5 +112,6 @@ void gpio_init(void)
     gpio_pin_set_raw(gpio_dev5, SENSOR_RST_PIN, 1); 
 }
 #endif
+
 
 #endif

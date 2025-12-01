@@ -102,7 +102,7 @@ void LIB_CPM_OscSwitch(int osc_sel)
 
 uint8_t LIB_sysclock400_check(void)
 {
-    if (0xFFFF == (*(volatile unsigned int *)(0x082000e4)))
+    if( 0xFFFF == (*(volatile unsigned int *)(0x082000e4)))
     {
         return 1;
     }

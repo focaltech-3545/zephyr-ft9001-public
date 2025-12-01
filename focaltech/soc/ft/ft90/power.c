@@ -85,6 +85,7 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
             ft_sys_wake_up();
             printk("exit low power\n");
             LP_LowpowerOut();
+	    random_init();
 
             //		       __enable_irq();
             //			__ISB();

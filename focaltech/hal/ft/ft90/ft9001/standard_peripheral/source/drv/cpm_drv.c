@@ -1,6 +1,6 @@
 /**
-  **********************************************************************************
-             Copyright(c) 2025 Focaltech Co. Ltd.
+    **********************************************************************************
+             Copyright(c) 2020 China Core Co. Ltd.
                       All Rights Reserved
   **********************************************************************************
   * @file    cpm_drv.c
@@ -38,5 +38,7 @@ void DRV_CPM_SetIpsClkDiv(uint32_t div)
     CPM->PCDIVR1 |= data;
     CPM->CDIVUPDR |= CPM_CDIVUPDR_PERIPHERAL_DIV_UPDATE;
 }
+
+
 
 /************************ (C) COPYRIGHT C*Core *****END OF FILE**********************/

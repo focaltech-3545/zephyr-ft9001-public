@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Focaltech Systems CO.,Ltd
+ * Copyright (c) 2025, Focaltech Systems CO.,Ltd
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -186,7 +186,7 @@
             reg = <0x40020000 0x1000>;
             interrupts = <20 0>;
             clocks = <&rcc FOCALTECH_CLOCK_ADC>;
-    
+            resets = <&rctl FOCALTECH_RESET_ADC>;
             channels = <17>;
             status = "disabled";
             #io-channel-cells = <1>;
@@ -243,8 +243,8 @@
             status = "disabled";
         };
 
-        eport3: eport@40025000 {
-            compatible = "ft,ft90-eport", "ft,ft90-gpio";
+        eport3: gpio@40025000 {
+            compatible = "ft,ft90-gpio", "ft,ft90-gpio";
             gpio-controller;
             reg = <0x40025000 0x1000>;
             clocks = <&rcc FOCALTECH_CLOCK_EPORT3>;
@@ -471,7 +471,7 @@
             reg = <0x4002e000 0x1000>;
             interrupts = <85 0>;
             clocks = <&rcc FOCALTECH_CLOCK_PWMT1>;
-            resets = <&rctl FOCALTECH_RESET_PWMT1>;
+         resets = <&rctl FOCALTECH_RESET_PWMT1>;
             is-advanced;
             //channels = <4>;
             status = "disabled";
@@ -511,8 +511,8 @@
             compatible = "ft,ft90-rtc";
             reg = <0x40035000 0x1000>;
             interrupts = <15 0>;
-            clocks = <&rcc FOCALTECH_CLOCK_RTC>;
-	    
+            clocks = <&rcc FOCALTECH_CLOCK_PMURTC>;
+            resets = <&rctl FOCALTECH_RESET_PMURTC>;
             status = "disabled";
         };
 

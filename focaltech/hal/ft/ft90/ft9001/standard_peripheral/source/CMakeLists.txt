@@ -1,6 +1,6 @@
 # Makefile - FOCALTECHLIB SDK
 #
-# Copyright (c) 2025 Focaltech Systems CO.,Ltd
+# Copyright (c) 2025 Neldtv
 #
 # SPDX-License-Identifier: Apache-2.0
 

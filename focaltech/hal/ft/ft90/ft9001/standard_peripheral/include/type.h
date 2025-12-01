@@ -30,6 +30,8 @@ typedef unsigned int  	        TWORD ;
 typedef unsigned long           TDWORD;
 typedef unsigned char           BOOL;
 
+
+
 #define BIT0 (1<<0)
 #define BIT1 (1<<1)
 #define BIT2 (1<<2)
@@ -42,6 +44,21 @@ typedef unsigned char           BOOL;
 #define BIT9 (1<<9)
 #define BIT11 (1<<11)
 #define BITS(n) (1<<(n))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //typedef enum {FALSE = 0, TRUE = !FALSE} bool;
 #ifndef FALSE

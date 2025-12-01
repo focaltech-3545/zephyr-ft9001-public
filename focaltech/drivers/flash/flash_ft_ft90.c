@@ -113,7 +113,7 @@ static uint32_t drv_ssi_get_ssi_id(uint32_t addr)
         __builtin_arm_nop();                                                                                           \
         __builtin_arm_nop();                                                                                           \
     } while (0)
-#if 1
+#if 0
 __attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t st)
 {
 
