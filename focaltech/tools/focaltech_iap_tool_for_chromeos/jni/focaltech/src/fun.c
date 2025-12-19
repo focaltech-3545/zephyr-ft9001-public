@@ -86,7 +86,7 @@ static int usb_write(unsigned char *cmd, int cmd_len, unsigned char *data, int d
 
     io_hdr.sbp = sense;
     io_hdr.mx_sb_len = 32; // sense length
-    io_hdr.timeout = 5000;
+    io_hdr.timeout = 6000;//it will take 4.4s in bootloader erease page 
 
     ret = ft_sg_io(&io_hdr);
 
@@ -97,6 +97,7 @@ static int Erase_Page(int length, int addr)
 {
     unsigned char transfer_cmd[] = {0xdc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x08, 0, 0};
     int count = 0, ret_value;
+    FF_LOGD("Erase_Page len=0x%x,addr=0x%x",length,addr);
 
     count = (length + FOCAL_CONFIG_SIZE - 1) / FOCAL_CONFIG_SIZE;
 
@@ -561,12 +562,12 @@ void update_fw(ft_device_info_t *info)
 
     if (info->current_mode == BOOT_MODE)
     {
-        FF_LOGD("is in bootloader mode\n");
+        FF_LOGD("is in bootloader mode");
         downaddr = FOCAL_BOOT_CFG_ADDR;
 
         if (code_start_address != FOCAL_BOOT_RUN_ADDR)
         {
-            FF_LOGE("ec not for bootloader,don't use this ec\n");
+            FF_LOGE("ec not for bootloader,don't use this ec");
             return;
         }
     }
@@ -575,7 +576,7 @@ void update_fw(ft_device_info_t *info)
 
         if (code_start_address == FOCAL_BOOT_RUN_ADDR)
         {
-            FF_LOGE("ec not for rom,don't use this ec\n");
+            FF_LOGE("ec not for rom,don't use this ec");
             return;
         }
         if (!has_configue)
@@ -586,7 +587,7 @@ void update_fw(ft_device_info_t *info)
         {
             if (code_start_address != FOCAL_ROM_RUN_ADDR&&code_start_address !=(FOCAL_ROM_RUN_ADDR-FOCAL_CONFIG_SIZE))
             {
-                FF_LOGE("ec not for rom,don't use this ec\n");
+                FF_LOGE("ec not for rom,don't use this ec");
                 return;
             }
         }

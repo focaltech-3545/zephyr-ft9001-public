@@ -16,6 +16,7 @@ extern "C"
     {
         libusb_device_handle *handle;
         libusb_device **devs;
+        libusb_context *ctx;
         uint8_t endpoint_in;
         uint8_t endpoint_out;
     } usb_context_t;
@@ -78,6 +79,8 @@ enum   libusb_error
     void mbedtls_usb_free(void);
 
     int mbedtls_usb_exist(uint16_t *pid, uint16_t *vid);
+    
+    int LIBUSB_CALL usb_remove_event_callback(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *user_data);
 
 #ifdef __cplusplus
 }

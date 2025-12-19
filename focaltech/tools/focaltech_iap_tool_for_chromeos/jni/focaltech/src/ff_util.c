@@ -138,11 +138,27 @@ int ff_util_sprintf(char *buf, const char *fmt, ...)
     return n;
 }
 
+static void ft_get_time_local(char *time_buff)
+{
+    char buff[32];
+    struct timeval tv;
+    struct tm timeinfo;
+
+    gettimeofday(&tv,NULL);
+
+    localtime_r(&tv.tv_sec,&timeinfo);
+
+    strftime(buff,sizeof(buff),"%m-%d %H:%M:%S",&timeinfo);
+    sprintf(time_buff,"%s.%03ld",buff,tv.tv_usec/1000);
+
+}
+
 int log_printf(log_level_t level, const char *tag, const char *fmt, ...)
 {
 #ifdef __DEBUG_MODE__
-    static char buf[LOG_BUF_SIZE];
-
+    
+    char buf[LOG_BUF_SIZE];
+    char time_buff[64];
     if (level >= __LOG_LEVEL__)
     {
 
@@ -151,22 +167,24 @@ int log_printf(log_level_t level, const char *tag, const char *fmt, ...)
         vsnprintf(buf, LOG_BUF_SIZE - 1, fmt, ap);
         va_end(ap);
 
+        ft_get_time_local(time_buff);
+
         /*1.Write to console.*/
         if (level == LOG_LEVEL_ERR)
         {
-            printf("\033[31m%c [%s] %s \033[0m\n", log_level_char[level], tag, buf);
-        }
+            printf("\033[31m[%s] %c [%s] %s \033[0m\n", time_buff, log_level_char[level], tag, buf);
+        } 
         else if (level == LOG_LEVEL_WRN)
         {
-            printf("\033[33m%c [%s] %s \033[0m\n", log_level_char[level], tag, buf);
+            printf("\033[33m[%s] %c [%s] %s \033[0m\n", time_buff, log_level_char[level], tag, buf);
         }
         else if (level == LOG_LEVEL_INF)
         {
-            printf("\033[36m%c [%s] %s \033[0m\n", log_level_char[level], tag, buf);
+            printf("\033[36m[%s] %c [%s] %s \033[0m\n", time_buff, log_level_char[level], tag, buf);
         }
         else
         {
-            printf("%c [%s] %s\n", log_level_char[level], tag, buf);
+            printf("[%s] %c [%s] %s\n", time_buff, log_level_char[level], tag, buf);
         }
     }
 

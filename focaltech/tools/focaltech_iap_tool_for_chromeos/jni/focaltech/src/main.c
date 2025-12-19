@@ -248,26 +248,29 @@ int main(int argc, char **argv)
 
         if (!memcmp(tmp, "back_to_second_boot", sizeof("back_to_second_boot")))
         {
-            FF_LOGD("back to second boot\n");
+            FF_LOGD("back to second boot");
             info.next_mode = BOOT_MODE;
 
             ft_switch_to_boot();
+            mbedtls_usb_free();
             return 0;
         }
 
         if (!memcmp(tmp, "back_to_bootloader", sizeof("back_to_bootloader")))
         {
-            FF_LOGD("back to  bootloader\n");
+            FF_LOGD("back to  bootloader");
             info.next_mode = BOOT_MODE;
 
             ft_switch_to_boot();
+            mbedtls_usb_free();
             return 0;
         }
 
         if (!memcmp(tmp, "back_to_rom_boot", sizeof("back_to_rom_boot")))
         {
-            FF_LOGD("back to rom boot\n");
+            FF_LOGD("back to rom boot");
             info.next_mode = ROM_MODE;
+            mbedtls_usb_free();
             update_fw(&info);
             return 0;
         }
@@ -305,6 +308,7 @@ int main(int argc, char **argv)
         info.next_mode = EC_MODE;
     }
 
+    mbedtls_usb_free();
     update_fw(&info);
 
     return 0;

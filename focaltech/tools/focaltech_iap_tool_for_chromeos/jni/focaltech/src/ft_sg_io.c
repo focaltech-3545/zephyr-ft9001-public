@@ -8,12 +8,18 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "net_usb.h"
+
 #include "ff_log.h"
 #include "ff_sg_io.h"
 
 // device Handle
 static libusb_device_handle *dev_handle = NULL;
 static uint32_t cdb_tag = 1;
+static libusb_context *ctx;
+static libusb_hotplug_callback_handle callback_handle=0;
+
+static int got_usb_reove=0;
 
 static struct ft_boot_ep_t
 {
@@ -25,7 +31,7 @@ static struct ft_boot_ep_t
 // init libusb
 int ft_sg_init()
 {
-    int r = libusb_init(NULL);
+    int r = libusb_init(&ctx);
     if (r < 0)
     {
         FF_LOGE("Failed to initialize libusb: %s\n", libusb_error_name(r));
@@ -33,9 +39,9 @@ int ft_sg_init()
     }
 
 #ifdef LIBUSB_OPTION_LOG_LEVEL
-    libusb_set_option(NULL, LIBUSB_OPTION_LOG_LEVEL, 3);
+    libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, 3);
 #else
-    libusb_set_debug(NULL, 3);
+    libusb_set_debug(ctx, 3);
 #endif
 
     return 0;
@@ -44,7 +50,7 @@ int ft_sg_init()
 // open device by VID/PID
 int ft_sg_open(uint16_t vendor_id, uint16_t product_id)
 {
-    dev_handle = libusb_open_device_with_vid_pid(NULL, vendor_id, product_id);
+    dev_handle = libusb_open_device_with_vid_pid(ctx, vendor_id, product_id);
     if (!dev_handle)
     {
         fprintf(stderr, "Device not found");
@@ -53,13 +59,20 @@ int ft_sg_open(uint16_t vendor_id, uint16_t product_id)
     libusb_reset_device(dev_handle);
     usleep(100 * 1000);
 
+    int ret = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,
+                                           0, vendor_id, product_id, LIBUSB_HOTPLUG_MATCH_ANY, usb_remove_event_callback, &got_usb_reove,&callback_handle);
+    if(ret){
+        FF_LOGW("hotplug_register failed");
+    }
+
     // check MSC device
     struct libusb_device_descriptor desc;
     libusb_device *dev = libusb_get_device(dev_handle);
     libusb_get_device_descriptor(dev, &desc);
 
+
     FF_LOGD("Device opened: %04x:%04x", desc.idVendor, desc.idProduct);
-    FF_LOGD("  bDeviceClass: 0x%02x", desc.bDeviceClass);
+    FF_LOGD("bDeviceClass: 0x%02x", desc.bDeviceClass);
 
     // find interface
     struct libusb_config_descriptor *config;
@@ -74,7 +87,7 @@ int ft_sg_open(uint16_t vendor_id, uint16_t product_id)
         for (int j = 0; j < interface->num_altsetting; j++)
         {
             const struct libusb_interface_descriptor *iface_desc = &interface->altsetting[j];
-            FF_LOGD("  Interface %d: bInterfaceClass=0x%02x, bInterfaceSubClass=0x%02x", iface_desc->bInterfaceNumber,
+            FF_LOGD("Interface %d: bInterfaceClass=0x%02x, bInterfaceSubClass=0x%02x", iface_desc->bInterfaceNumber,
                     iface_desc->bInterfaceClass, iface_desc->bInterfaceSubClass);
 
             if (iface_desc->bInterfaceClass == LIBUSB_CLASS_MASS_STORAGE && iface_desc->bInterfaceSubClass == 0x06)
@@ -134,6 +147,28 @@ int ft_sg_open(uint16_t vendor_id, uint16_t product_id)
     return 0;
 }
 
+static int ft_check_mcu_reset(void)
+{
+    int retry=5;
+    int complete=0;
+    struct timeval timeout;
+
+    while(retry--){
+        memset(&timeout,0,sizeof(timeout));
+        timeout.tv_sec=1;
+            
+        libusb_handle_events_timeout_completed(ctx,&timeout,&complete);
+                    
+        if(got_usb_reove==0x55aa)
+        {
+            FF_LOGI("got usb remove event");
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 // send SG_IO
 int ft_sg_io(struct sg_io_hdr *io_hdr)
 {
@@ -182,13 +217,28 @@ int ft_sg_io(struct sg_io_hdr *io_hdr)
                                  (unsigned char *)&cbw, sizeof(cbw), &transferred, io_hdr->timeout);
     if (r < 0)
     {
+        
+        if (io_hdr->dxfer_direction == DIRECTION_NONE){
+            FF_LOGW("CBW transfer failed: %s,recheck mcu reset", libusb_error_name(r));
+            if(ft_check_mcu_reset()==0){
+                return 0;
+            }    
+        }
+
         FF_LOGE("CBW transfer failed: %s", libusb_error_name(r));
         io_hdr->driver_status = SG_IO_DRIVER_ERROR;
-        return -1;
+
+        return -1;   
     }
 
     if (transferred != sizeof(cbw))
     {
+        if (io_hdr->dxfer_direction == DIRECTION_NONE){
+            FF_LOGW("Incomplete CBW transfer: %d/%zu bytes,recheck mcu reset", transferred, sizeof(cbw));
+            if(ft_check_mcu_reset()==0){
+                return 0;
+            }    
+        }
         FF_LOGE("Incomplete CBW transfer: %d/%zu bytes", transferred, sizeof(cbw));
         io_hdr->driver_status = SG_IO_DRIVER_ERROR;
         return -1;
@@ -211,6 +261,13 @@ int ft_sg_io(struct sg_io_hdr *io_hdr)
                                  io_hdr->timeout);
         if (r < 0)
         {
+            if (io_hdr->dxfer_direction == DIRECTION_NONE){
+                FF_LOGW("Data transfer failed: %s,recheck mcu reset", libusb_error_name(r));
+                if(ft_check_mcu_reset()==0){
+                    return 0;
+                }    
+            }
+
             FF_LOGE("Data transfer failed: %s", libusb_error_name(r));
             io_hdr->driver_status = SG_IO_DRIVER_ERROR;
             return -1;
@@ -247,7 +304,6 @@ int ft_sg_io(struct sg_io_hdr *io_hdr)
         // check CSW
         if (le32toh(csw.signature) != USB_MS_CSW_SIGNATURE)
         {
-
             FF_LOGE("Invalid CSW signature: 0x%08x", le32toh(csw.signature));
             io_hdr->driver_status = SG_IO_DRIVER_ERROR;
             return -1;
@@ -285,6 +341,7 @@ int ft_sg_io(struct sg_io_hdr *io_hdr)
 // close device
 void ft_sg_close()
 {
+    
     if (dev_handle)
     {
 
@@ -295,5 +352,15 @@ void ft_sg_close()
         libusb_close(dev_handle);
         dev_handle = NULL;
     }
-    libusb_exit(NULL);
+
+    if(ctx){
+        if(callback_handle){
+            FF_LOGD("deregister hot plug sgio");
+            libusb_hotplug_deregister_callback(ctx,callback_handle);
+            callback_handle=0;
+        }
+        libusb_exit(ctx);
+        ctx=NULL;
+    }
+    
 }
