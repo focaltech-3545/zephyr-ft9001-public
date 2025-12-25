@@ -45,6 +45,10 @@
 		hw-flow-control;
 };
 
+&rst {
+        status = "okay";
+};
+
 &rcc {
         status = "okay";
 };
