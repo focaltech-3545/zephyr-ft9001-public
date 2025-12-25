@@ -20,9 +20,9 @@ LOG_MODULE_REGISTER(entropy_ft_trng, LOG_LEVEL_DBG);
 
 static int entropy_ft_trng_get_entropy(const struct device *dev, uint8_t *buffer, uint16_t length)
 {
-    printk("%s\n", __func__);
-    int count = length / sizeof(uint32_t);
-    int remain = length % sizeof(uint32_t);
+	//printf("%s\n", __func__);
+	int count = length / sizeof(uint32_t);
+	int remain = length % sizeof(uint32_t);
 
     for (int i = 0; i < count; i++)
     {

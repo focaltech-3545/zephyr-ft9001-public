@@ -397,19 +397,28 @@ static void spi_ft_send_next_frame(const struct spi_ft_config *cfg, struct spi_f
 static void spi_ft_frame_shift_m(const struct spi_ft_config *cfg, struct spi_ft_data *data)
 {
 	uint16_t status;
+	uint32_t timeout = 0;
 	SPI_TypeDef *SPIx = cfg->base;
 	status = SPIx->SPISRHW;
-	//printf("misr st:%x\n", status);
-	/*RX FIFO no empty*/
-	if (!(status & SPISR_RXFEMP_MASK)) {
-		spi_ft_read_next_frame(cfg, data);
-	}
+	//printf("misr st:%x\n", status);	
 
 	/*TX FIFO empty*/
 	if (status & SPISR_TXFEMP_MASK)  {
 		spi_ft_send_next_frame(cfg, data);
 	}
-	
+
+	while((SPIx->SPISR & SPISR_SPIF_MASK) != SPISR_SPIF_MASK) {
+		timeout++;
+		__asm("nop");
+		if (timeout >= 1000000) {
+			break;
+		}
+	}
+
+	/*RX FIFO no empty*/
+	if (!(status & SPISR_RXFEMP_MASK)) {
+		spi_ft_read_next_frame(cfg, data);
+	}
 }
 
 static int spi_ft_shift_frames(const struct spi_ft_config *cfg, struct spi_ft_data *data)
@@ -599,7 +608,7 @@ static void spi_ft_complete(const struct device *dev, int status)
 		for(i=0; i<guard_time; i++) {
 			__asm("nop");
 			__asm("nop");
-		}
+		}	
 		SPI_CSHigh(cfg->base);
 	}
 #ifdef CONFIG_SPI_FOCALTECH_INTERRUPT

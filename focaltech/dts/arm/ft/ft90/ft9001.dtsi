@@ -59,6 +59,12 @@
             zephyr,memory-region = "DTCM";
         };
 
+        psram: memory@18000000 {
+            compatible = "zephyr,memory-region", "mmio-sram";
+            reg = <0x18000000 DT_SIZE_K(2048)>;
+            zephyr,memory-region = "PSRAM";
+        };
+
         rcc: rcc@40004000 {
             compatible = "ft,ft90-rcc";
             #clock-cells = <1>;
@@ -66,12 +72,12 @@
             status = "disabled";
         };
 
-        rctl: reset@40004000 {
+        /*rctl: reset@40004000 {
             compatible = "ft,ft90-rctl";
             #reset-cells = <1>;
             reg = <0x40004000 0x1000>;
             status = "disabled";
-        };
+        };*/
 
         efm: flash-controller@40003000 {
             compatible = "ft,ft90-flash-controller";
@@ -86,7 +92,7 @@
             };
         };
 
-        usart0: usart@40013000 {
+        /*usart0: usart@40013000 {
             compatible = "ft,ft90-usart";
             reg = <0x40013000 0x1000>;
             interrupts = <32 0>;
@@ -111,7 +117,7 @@
             clocks = <&rcc FOCALTECH_CLOCK_UART2>;
             resets = <&rctl FOCALTECH_RESET_UART2>;
             status = "disabled";
-        };
+        };*/
 
         dac0: dac@40021000 {
             compatible = "ft,ft90-dac";

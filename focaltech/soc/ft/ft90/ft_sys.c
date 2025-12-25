@@ -74,35 +74,19 @@ static uint32_t g_trim_clk;
 uint8_t (*xip_flash_erase)(struct str_flash *p_ssi_para);
 uint8_t (*xip_flash_program)(struct str_flash *p_ssi_para);
 static uint8_t (*xip_sys_clk_switch)(struct str_flash *p_ssi_para);
+uint8_t (*ssi_open_xip)(struct str_flash *p_ssi_para);
+uint8_t (*ssi_close_xip)(struct str_flash *p_ssi_para);
 
 /* Calls a ROM function. This function must be called to initialize before any flash operation. */
 void ft_xip_flash_init()
 {
-    //int i;
+   
     xip_flash_erase = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x0400747a | 1)));
     xip_flash_program = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x0400752e | 1)));
     xip_sys_clk_switch = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x04007658 | 1)));
-#if 0
-    for (i = 0; i < 3; i++)
-    {
-        ssi_cfg[i].SsiId = i + 1; //
-        ssi_cfg[i].Cmd = 2;       // 0x00000020;      // erase
-        //ssi_cfg[i].Addr = 0x10000000;
+	ssi_open_xip = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x040069d4 | 1)));
+	ssi_close_xip = (uint8_t (*)(struct str_flash *))(((uint32_t *)(0x0400665c | 1)));
 
-        ssi_cfg[i].SysDiv = 2;
-        ssi_cfg[i].IsQpiMode = 0;
-        ssi_cfg[i].StandBaudr = 0x0002;
-        ssi_cfg[i].QuadBaudr = 0x0002;
-        ssi_cfg[i].RxSampleDelay = 0x00000001;
-
-        ssi_cfg[i].IsMaskInterrupt = 1;
-        ssi_cfg[i].ProgramMode = 0; // dma_mode or not
-        ssi_cfg[i].Len = 0;         // program len
-        ssi_cfg[i].Buf = 0;         // program buf addr
-        ssi_cfg[i].Delay = 10;
-        ssi_cfg[i].Timeout = 0xffffffff;
-    }
-#endif
 }
 
 static void DRV_CPM_VccCoreTestModeKeySet(void)
@@ -136,12 +120,7 @@ static void DRV_XIP_SYSCLKSwitch(uint8_t sys_clk_div, uint16_t ssi_clk_div, uint
     uint8_t ssi_id = 1; /* SSI1 */
     struct str_flash ssi_cfg;
     memcpy(&ssi_cfg,&g_ssi_cfg[ssi_id - 1],sizeof( struct str_flash));
-    //const struct str_flash ssi_cfg[];
-
-    //ssi_cfg[ssi_id - 1].SsiId = ssi_id;
-    //ssi_cfg[ssi_id - 1].SysDiv = sys_clk_div;
-    //ssi_cfg[ssi_id - 1].QuadBaudr = ssi_clk_div;
-    //ssi_cfg[ssi_id - 1].RxSampleDelay = ssi_rx_sample_delay;
+ 
     
     ssi_cfg.SsiId = ssi_id;
     ssi_cfg.SysDiv = sys_clk_div;
@@ -455,12 +434,54 @@ static void DRV_ICACHE_Init(CACHE_ComTypeDef boot, CACHE_ComTypeDef rom, CACHE_C
     ICACHE->CACHE_CCR |= ENCACHE;
 }
 
+void DRV_PSRAM_OPENXIP( uint32_t ssi_rx_sample_delay)
+{
+    struct str_flash  ssiconfig;
+    ssiconfig.SsiId = 6;
+    ssiconfig.StandBaudr =2;
+    ssiconfig.QuadBaudr = 2;
+
+    ssiconfig.RxSampleDelay =  ssi_rx_sample_delay ;
+    ssiconfig.Cmd = 0x35 ;
+    ssiconfig.IsMaskInterrupt =0;
+    ssiconfig.Delay =0;
+    
+    ssi_open_xip(&ssiconfig);
+}
+
+void DRV_PSRAM_CloseXIP(void)
+{
+    struct str_flash  ssiconfig;
+    ssiconfig.SsiId = 6;
+    ssiconfig.StandBaudr =2;
+    ssiconfig.QuadBaudr = 2;
+
+    ssiconfig.RxSampleDelay =  0 ;
+    ssiconfig.Cmd = 0x35 ;
+    ssiconfig.IsMaskInterrupt =0;
+    ssiconfig.Delay =0;
+
+    ssi_close_xip(&ssiconfig);
+}
+
+void HAL_SSI_PSRAMOpenXIP(uint32_t ssi_rx_sample_delay)
+{
+    DRV_PSRAM_OPENXIP(ssi_rx_sample_delay);
+}
+
+void HAL_SSI_PSRAMCloseXIP(void)
+{
+    DRV_PSRAM_CloseXIP();
+}
+
 #if 1
 static void ft_Sys_CacheInit(void)
 {
-    DRV_DCACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Off);
+    DRV_DCACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Back);
 
-    DRV_ICACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Off);
+    DRV_ICACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Back);
+	HAL_SSI_PSRAMCloseXIP();
+    HAL_SSI_PSRAMOpenXIP(1);
 }
 #endif
 
