@@ -19,10 +19,14 @@
 #include <system_ft9001.h>
 #endif
 
+#define PUSHW0 ((1) << 25)
+#define PUSHW1 ((1) << 27)
+
 void __attribute__((section(".ramfunc"))) xip_clock_switch(uint32_t clk_div);
 void __attribute__((section(".ramfunc"))) xip_reback_boot(void);
 
 void ft_pm_enter_deep_sleep(bool enable);
+void DRV_DCACHE_Push(uint32_t way);
 
 #endif /* _ASMLANGUAGE */
 

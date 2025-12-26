@@ -65,6 +65,12 @@
             zephyr,memory-region = "PSRAM";
         };
 
+        rst: rst@40002000 {
+            compatible = "ft,ft90-rst";
+            reg = <0x40002000 0x1000>;
+            status = "disabled";
+        };
+
         rcc: rcc@40004000 {
             compatible = "ft,ft90-rcc";
             #clock-cells = <1>;

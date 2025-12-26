@@ -38,6 +38,26 @@ void ft_pm_enter_deep_sleep(bool enable)
 
 
 }
+static void ft_enter_sleep_prepare()
+{
+
+#ifdef CONFIG_CROS_EC_RW
+        random_deinit();
+        __disable_irq();
+        __set_BASEPRI(0);
+        __ISB();
+            LP_LowpowerIn();
+        __enable_irq();
+        __ISB();
+#endif
+        k_cpu_idle();
+
+        void ft_sys_wake_up(void);
+        ft_sys_wake_up();
+        printk("exit low power\n");
+        LP_LowpowerOut();
+        random_init();
+}
 
 /* Power state manage */
 
@@ -60,35 +80,14 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
     switch (state)
     {
     case PM_STATE_RUNTIME_IDLE:
-        // printk("PM_STATE_RUNTIME_IDLE\n");
 
         if (enter_sleep)
         {
-
+            enter_sleep=false;
+            printk("enter Low power from runtime\n");
             ft_enable_wakeup_irq_source();
-
-            printk("enter Low power\n");
             ft_enter_deep_sleep_time = 0;
-
-#ifdef CONFIG_CROS_EC_RW
-            random_deinit();
-	    __disable_irq();
-	    __set_BASEPRI(0);
-	    __ISB();
-            LP_LowpowerIn();
-	    __enable_irq();
-	    __ISB();
-#endif
-            k_cpu_idle();
-
-            void ft_sys_wake_up(void);
-            ft_sys_wake_up();
-            printk("exit low power\n");
-            LP_LowpowerOut();
-	    random_init();
-
-            //		       __enable_irq();
-            //			__ISB();
+            ft_enter_sleep_prepare();
         }
         else
         {
@@ -98,21 +97,35 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 
         break;
     case PM_STATE_SUSPEND_TO_IDLE:
-        printk("PM_STATE_SUSPEND_TO_IDLE\n");
-        LOG_DBG("entering PM state suspend to idle");
-        k_cpu_idle();
+
+        if (enter_sleep)
+        {
+            enter_sleep=false;
+            printk("enter Low power from suspend\n");
+            ft_enable_wakeup_irq_source();
+            ft_enter_deep_sleep_time = 0;
+            ft_enter_sleep_prepare();
+        }
+        else
+        {
+            k_cpu_idle();
+        }
+
         break;
     case PM_STATE_STANDBY:
+
         printk("PM_STATE_STANDBY\n");
         LOG_DBG("entering PM state standby");
         k_cpu_idle();
         break;
     case PM_STATE_SOFT_OFF:
+
         printk("PM_STATE_STANDBY\n");
         LOG_DBG("entering PM state soft off");
         k_cpu_idle();
         break;
     default:
+
         LOG_DBG("Unsupported power state %u", state);
         break;
     }
@@ -129,7 +142,7 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
     case PM_STATE_SUSPEND_TO_IDLE:
 
         LP_LowpowerOut();
-        printk("suspend exit\n");
+        //printk("suspend exit\n");
 
         break;
     default:

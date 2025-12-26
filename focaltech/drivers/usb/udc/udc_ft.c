@@ -43,10 +43,8 @@
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
 #include <zephyr/pm/policy.h>
-// LOG_MODULE_REGISTER(udc_ft, LOG_LEVEL_DBG);
+
 LOG_MODULE_REGISTER(usb_device_init, LOG_LEVEL_ERR);
-// LOG_MODULE_REGISTER(udc_ft, LOG_LEVEL_WRN);
-// LOG_MODULE_REGISTER(udc_ft, LOG_LEVEL_INF);
 
 #include "cpm_drv.h"
 #include "usb_drv.h"

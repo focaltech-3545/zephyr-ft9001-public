@@ -10,7 +10,6 @@
 
 #include "ft_sys.h"
 
-//struct str_flash ssi_cfg[3];
 const struct str_flash g_ssi_cfg[]={
     {
 	   .SsiId=1,
@@ -463,7 +462,16 @@ void DRV_PSRAM_CloseXIP(void)
 
     ssi_close_xip(&ssiconfig);
 }
-
+void DRV_DCACHE_Push(uint32_t way)
+{
+    if (DCACHE->CACHE_CCR & ENCACHE) /* 只有当cache使能时，才执行cache push操作 */
+    {
+        DCACHE->CACHE_CCR |= (way | GO);
+        /* 等待cache清除完成 */
+        while (DCACHE->CACHE_CCR & GO)
+            ;
+    }
+}
 void HAL_SSI_PSRAMOpenXIP(uint32_t ssi_rx_sample_delay)
 {
     DRV_PSRAM_OPENXIP(ssi_rx_sample_delay);
@@ -480,7 +488,7 @@ static void ft_Sys_CacheInit(void)
     DRV_DCACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Back);
 
     DRV_ICACHE_Init(CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Through, CACHE_Back);
-	HAL_SSI_PSRAMCloseXIP();
+	 HAL_SSI_PSRAMCloseXIP();
     HAL_SSI_PSRAMOpenXIP(1);
 }
 #endif

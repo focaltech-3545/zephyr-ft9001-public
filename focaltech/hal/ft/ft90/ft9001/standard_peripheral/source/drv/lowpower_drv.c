@@ -38,12 +38,18 @@ void LP_LowpowerIn(void)
 {
     int lock_key;
 
-    // Lowpower_enter();
-    // return ;
+  #define SPRAM_SLP_EN (1<<28)
+
+    DRV_DCACHE_Push(PUSHW0);
+    DRV_DCACHE_Push(PUSHW1);
 
     uint32_t temp_value;
     lock_key = arch_irq_lock();
     temp_value = ((CPM->SLPCFGR) & (0x3FFFFFFF));
+
+    //disable spram sleep
+    temp_value &=~SPRAM_SLP_EN;
+
     CPM->SLPCFGR = temp_value;
     CPM->SLPCFGR2 &= ~((uint32_t)1 << 9);
     CPM->MPDSLPCR = 0x1faa000a;

@@ -378,7 +378,7 @@ static int gpio_ft_pm_action(const struct device *port, enum pm_device_action ac
 {
     // int err=0;
     // const struct gpio_ft_config* cfg = port->config;
-    printk("gpaction =%d\n", action);
+ //   printk("gpaction =%d\n", action);
 
     switch (action)
     {
