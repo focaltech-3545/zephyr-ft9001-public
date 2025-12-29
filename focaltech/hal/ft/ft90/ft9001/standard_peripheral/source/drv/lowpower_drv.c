@@ -38,7 +38,7 @@ void LP_LowpowerIn(void)
 {
     int lock_key;
 
-  #define SPRAM_SLP_EN (1<<28)
+  #define PSRAM_SLP_EN (1<<28)
 
     DRV_DCACHE_Push(PUSHW0);
     DRV_DCACHE_Push(PUSHW1);
@@ -47,8 +47,8 @@ void LP_LowpowerIn(void)
     lock_key = arch_irq_lock();
     temp_value = ((CPM->SLPCFGR) & (0x3FFFFFFF));
 
-    //disable spram sleep
-    temp_value &=~SPRAM_SLP_EN;
+    //disable psram sleep
+    temp_value &=~PSRAM_SLP_EN;
 
     CPM->SLPCFGR = temp_value;
     CPM->SLPCFGR2 &= ~((uint32_t)1 << 9);
