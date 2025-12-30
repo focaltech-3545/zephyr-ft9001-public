@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2025 Focaltech
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+#ifndef __ZEPHYR_INCLUDE_DRIVERS_FT90_FLASH_API_EX_H__
+#define __ZEPHYR_INCLUDE_DRIVERS_FT90_FLASH_API_EX_H__
+
+#define FT_FLASH_EX_OP_SET_WP BIT(0)
+#define FT_FLASH_EX_OP_GET_WP BIT(1)
+#define FT_FLASH_EX_OP_CLR_WP BIT(2)
+
+#define FT_FLASH_PROTECT_STATUS_UNSET 0
+
+#define FT_FLASH_FT90_EX_OP_WR_SR BIT(15)
+#define FT_FLASH_FT90_EX_OP_RD_SR BIT(14)
+
+#endif /* __ZEPHYR_INCLUDE_DRIVERS_FT90_FLASH_API_EX_H__ */

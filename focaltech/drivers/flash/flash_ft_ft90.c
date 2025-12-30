@@ -9,19 +9,12 @@
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#ifdef CONFIG_FLASH_EX_OP_ENABLED
+#include <zephyr/drivers/flash/ft90_flash_api_ex.h>
+#endif
 
 #include "flash_driver.h"
 #include <ft_trace.h>
-
-// #define BIT(x) ((1<<x))
-#define FT_FLASH_EX_OP_SET_WP BIT(0)
-#define FT_FLASH_EX_OP_GET_WP BIT(1)
-#define FT_FLASH_EX_OP_CLR_WP BIT(2)
-
-#define FT_FLASH_PROTECT_STATUS_UNSET 0
-
-#define FT_FLASH_FT90_EX_OP_WR_SR BIT(15)
-#define FT_FLASH_FT90_EX_OP_RD_SR BIT(14)
 
 #define FT_FLASH_BASE_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_MAX_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_flash))
@@ -594,12 +587,12 @@ static int flash_ft90_ex_op(const struct device *dev, uint16_t code, const uintp
         if (out)
         {
             value = (uint8_t *)out;
-            printk("unsupport wp right now,ingnore,enable=%d\n", *value);
+            //printk("unsupport wp right now,ingnore,enable=%d\n", *value);
         }
         break;
 
     case FT_FLASH_EX_OP_GET_WP:
-        printk("unsupport wp right now,ingnore\n");
+        //printk("unsupport wp right now,ingnore\n");
         if (in)
         {
             value = (uint8_t *)in;
