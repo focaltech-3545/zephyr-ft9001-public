@@ -143,10 +143,6 @@ void Sys_delay_us(int count)
         __asm("nop");
         __asm("nop");
         __asm("nop");
-        //__asm("nop");
-        //__asm("nop");
-        //__asm("nop");
-        //__asm("nop");
-        //__asm("nop");
+
     }
 }

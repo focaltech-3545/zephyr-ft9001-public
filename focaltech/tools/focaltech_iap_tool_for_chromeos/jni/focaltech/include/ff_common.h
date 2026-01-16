@@ -32,6 +32,7 @@ extern "C"
 #define FT_PROJECT_NAME_TEST "ft9001"
 #define FT_PROJECT_NAME_9865 "chojnik"
 #define FT_PROJECT_NAME_9869 "chudow"
+#define FT_PROJECT_NAME_9849 "chobienia"
 
 #define FOCAL_CODE_VALID_MAGIC 0x3AEC3721
 

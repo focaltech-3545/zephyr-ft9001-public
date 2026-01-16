@@ -1,6 +1,9 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- */
+/**
+  **********************************************************************************
+             Copyright(c) 2025 Focaltech Co. Ltd.
+                      All Rights Reserved
+  **********************************************************************************
+  */
 
 #define DT_DRV_COMPAT ft_ft90_spi
 
@@ -78,7 +81,6 @@ static int spi_ft_init(const struct device *dev)
 	return 0;
 }
 
-
 /*
  * The function to get Scaler and Prescaler for corresponding registers
  * to configure the baudrate for the transmission. The real frequency is
@@ -104,7 +106,6 @@ static int spi_ft_init(const struct device *dev)
 	//SPI_FOCALTECH_NUM_SCALER
 	static const uint16_t scaller_arr[8] = {2U, 4U, 8U, 16U, 32U, 64U, 128U, 256U};
 
-	//printf("sys is :%x, baud is %x\n", clock_frequency, requested_baud);
 	for (prescaler = 0U; prescaler < 8; prescaler++) {
 		low = 0U;
 		//high = SPI_FOCALTECH_NUM_SCALER - 1U;
@@ -161,34 +162,6 @@ static int spi_ft_init(const struct device *dev)
 	//best_baud->frequency = best_freq;
 	return;
 }
-/*
-static UINT8 spi_baudrate_map(uint32_t frequency)
-{
-	uint32_t sys_freq = sys_clock_hw_cycles_per_sec()/2; 
-	LOG_INF("sys_freq: %x ,frequency :%x\n", sys_freq, frequency);
-
-	if(frequency <= sys_freq/256)
-		return SPI_BaudRatePrescaler_256;
-	else if(frequency <= sys_freq/64)
-		return SPI_BaudRatePrescaler_64;
-	else if(frequency <= sys_freq/40)
-		return SPI_BaudRatePrescaler_40;
-	else if(frequency <= sys_freq/20)
-		return SPI_BaudRatePrescaler_20;
-	else if(frequency <= sys_freq/10)
-		return SPI_BaudRatePrescaler_10;
-	else if(frequency <= sys_freq/8)
-		return SPI_BaudRatePrescaler_8;
-	else if(frequency <= sys_freq/6)
-		return SPI_BaudRatePrescaler_6;
-	else if(frequency <= sys_freq/4)
-		return SPI_BaudRatePrescaler_4;
-	else if(frequency <= sys_freq/2)
-		return SPI_BaudRatePrescaler_2;
-	else
-		return SPI_BaudRatePrescaler_error;
-}
-*/
 
 int spi_transceive_init(const struct device *dev, const struct spi_config *config)
 {
@@ -213,8 +186,6 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 	else {
 		spi_ft_get_good_frequency(sys_freq, config->frequency, &sppr, &spr, &good_frequency);
 		SPIx->SPIBR = ((sppr & 0x07)<<4) | (spr&0x07);
-		//printf("sys_freq:%d, baud is%d, good_freq is %d, sppr is %x, spr is : %x\n",sys_freq, config->frequency, good_frequency, sppr, spr);
-		//SPIx->SPIPURD = 0x01;   //pullup for spi port
 	}
 
 	if ((config->operation & SPI_FRAME_FORMAT_TI) == SPI_FRAME_FORMAT_TI) {
@@ -253,7 +224,6 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 	else {
 		SPIx->SPICR1 |= SPICR1_MSTR_MASK;
 		//SS high Active
-		//SPIx->SPIPORT |= SPIPORT_SS_MASK;
 		SPI_CSHigh(cfg->base);
 
 		//SPI DATA Direction: ss is output  sck is output  MOSI is output MISO is input
@@ -278,15 +248,10 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 	if(cfg->guard_time) {
 		SPIx->SPIFR |= SPIFR_GTE_MASK;
 		SPIx->SPICR2 |= ((cfg->guard_time&0x03F)<<2);
-		//printf("guard_time is %x\n", cfg->guard_time);
 	}
 
-	//SPIx->SPICR2 |= SPICR2_SPC0_MASK;  //	//SPI_Direction_1Line_RxOrTx
 	SPIx->SPICR2 &= ~SPICR2_SPC0_MASK;   //SPI_LINES_SINGLE Only
-	//SPIx->SPICR2 &= ~SPICR2_GT_MASK      //set GT time
-	//SPIx->SPICR2 |= (0x09<<2);           //GT=(GT[5:3]+1)*2^(GT[2:0]+1)
-	//SPIx->SPICR2 |= (((0x05<<0)|(0x03<<3))<<2);
-
+	
 	//set_fifo_threshold
 	if(config->operation & SPI_OP_MODE_SLAVE) {
 		SPIx->SPITXFCR = SPITXFCR_TXFCLR_MASK | (0x07);    //tx_threshold = 7
@@ -306,7 +271,6 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 
 	return 0;
 }
-
 
 static void spi_ft_frame_shift_s(const struct spi_ft_config *cfg, struct spi_ft_data *data)
 {
@@ -400,7 +364,6 @@ static void spi_ft_frame_shift_m(const struct spi_ft_config *cfg, struct spi_ft_
 	uint32_t timeout = 0;
 	SPI_TypeDef *SPIx = cfg->base;
 	status = SPIx->SPISRHW;
-	//printf("misr st:%x\n", status);	
 
 	/*TX FIFO empty*/
 	if (status & SPISR_TXFEMP_MASK)  {
@@ -522,7 +485,7 @@ static int spi_ft_transceive_impl(const struct device *dev,
 	do {
 		ret = spi_ft_shift_frames(cfg, data);
 		if (ret != 0) {
-			LOG_INF("cpu normal cfg->base:%x SPIx->SPISRHW: %x ret:%x\n", cfg->base, SPIx->SPISRHW, ret);
+			LOG_INF("cpu normal cfg->base:%p ret:%x\n", cfg->base, ret);
 			break;
 		}
 	} while (spi_ft_transfer_ongoing(data));
@@ -616,6 +579,7 @@ static void spi_ft_complete(const struct device *dev, int status)
 #endif
 }
 
+#ifdef CONFIG_SPI_FOCALTECH_INTERRUPT
 static void spi_ft_isr(struct device *dev)
 {
 	const struct spi_ft_config *cfg = dev->config;
@@ -640,6 +604,7 @@ static void spi_ft_isr(struct device *dev)
 		spi_ft_complete(dev, err);
 	}
 }
+#endif
 
 static const struct spi_driver_api spi_ft_driver_api = {
 	.transceive = spi_ft_transceive,
@@ -649,14 +614,16 @@ static const struct spi_driver_api spi_ft_driver_api = {
 #endif /* CONFIG_SPI_ASYNC */
 };
 
-#define FOCALTECH_IRQ_CONFIGURE(idx)						   \
-	static void spi_ft_irq_configure_##idx(void)			   \
-	{								   \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority), \
-			    spi_ft_isr,				   \
-			    DEVICE_DT_INST_GET(idx), 0);		   \
-		irq_enable(DT_INST_IRQN(idx));				   \
+#ifdef CONFIG_SPI_FOCALTECH_INTERRUPT
+#define FOCALTECH_IRQ_CONFIGURE(idx)						   		\
+	static void spi_ft_irq_configure_##idx(void)			   		\
+	{								   								\
+		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority), 	\
+			    spi_ft_isr,				   							\
+			    DEVICE_DT_INST_GET(idx), 0);		   				\
+		irq_enable(DT_INST_IRQN(idx));				   				\
 	}
+#endif
 
 #define SPI_FOCALTECH_DEVICE(idx)                                     \
 IF_ENABLED(CONFIG_SPI_FOCALTECH_INTERRUPT, (FOCALTECH_IRQ_CONFIGURE(idx)));   \

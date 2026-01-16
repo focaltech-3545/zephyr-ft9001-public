@@ -253,7 +253,9 @@ typedef struct
 } UART_TypeDef;
 
 #define UART2_BASE_ADDR (0x40014000) /**< UART2  base address  */
+#define UART3_BASE_ADDR (0x4001D000) /**< UART2  base address  */
 #define UART2 ((UART_TypeDef *)UART2_BASE_ADDR)
+#define UART3 ((UART_TypeDef *)UART3_BASE_ADDR)
 #define UART_RE ((uint8_t)(1 << 2)) /**<*/
 #define UART_CR2_TE_MASK 0x08
 

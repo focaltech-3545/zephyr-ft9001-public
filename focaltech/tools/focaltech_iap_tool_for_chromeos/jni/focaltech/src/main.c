@@ -123,7 +123,7 @@ static int ft_get_ec_build_version()
 
     FF_LOGV("ret=%x", ret);
 
-    if (strstr(info, FT_PROJECT_NAME_TEST) || strstr(info, FT_PROJECT_NAME_9865) || strstr(info, FT_PROJECT_NAME_9869))
+    if (strstr(info, FT_PROJECT_NAME_TEST) || strstr(info, FT_PROJECT_NAME_9865) || strstr(info, FT_PROJECT_NAME_9869) || strstr(info, FT_PROJECT_NAME_9849))
     {
         ret = 0;
     }

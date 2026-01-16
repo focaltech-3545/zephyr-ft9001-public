@@ -208,7 +208,6 @@ static uint32_t DRV_CPM_GetIPSClHz(void)
 
 static void ft_Sys_SysClkConfig(SYS_ClkInitTypeDef *pClkInit)
 {
-    //    uint32_t efcr_reg;
 
     // Trim clock source
     LIB_CPM_OscSwitch(pClkInit->SysClkTrim);
@@ -505,13 +504,103 @@ static void ft_delay(uint32_t cnt)
     }
 }
 
+
+
+   typedef enum
+    {
+        SWAP_DIS = 0,
+        SWAP_EN,
+
+    } IOCTRL_UARTSwapGintENTypeDef;
+
+ typedef struct
+    {
+        uint8_t pins;
+        IOCTRL_UARTSwapGintENTypeDef swap;
+    } IOCTRL_UARTSwapTypeDef;
+
+    typedef struct
+    {
+        volatile uint32_t SPICR;     /**< 0x00  */
+        volatile uint32_t USICR;     /**< 0x04  */
+        volatile uint32_t I2CCR;     /**< 0x08  */
+        volatile uint32_t UARTCR;    /**< 0x0C  */
+        volatile uint32_t GINTLCR;   /**< 0x10  */
+        volatile uint32_t GINTHCR;   /**< 0x14  */
+        volatile uint32_t RESERVED;  /**< 0x18  */
+        volatile uint32_t SWAPCR;    /**< 0x1C  */
+        volatile uint32_t SPIM1CR;   /**< 0x20  */
+        volatile uint32_t SPIM2CR;   /**< 0x24  */
+        volatile uint32_t SPIM3CR;   /**< 0x28  */
+        volatile uint32_t RESERVED2; /**< 0x2C  */
+        volatile uint32_t RESERVED3; /**< 0x30  */
+        volatile uint32_t RESERVED4; /**< 0x34  */
+        volatile uint32_t WKUPPADCR; /**< 0x38  */
+        volatile uint32_t RESERVED5; /**< 0x3C  */
+        volatile uint32_t RESERVED6; /**< 0x40  */
+        volatile uint32_t RESERVED7; /**< 0x44  */
+        volatile uint32_t PSRAMCR1;  /**< 0x48  */
+        volatile uint32_t PSRAMCR2;  /**< 0x4C  */
+        volatile uint32_t PSRAMCR3;  /**< 0x50  */
+        volatile uint32_t EPORT2CR;  /**< 0x54  */
+        volatile uint32_t EPORT3CR;  /**< 0x58  */
+        volatile uint32_t EPORT4CR;  /**< 0x5C  */
+        volatile uint32_t EPORT5CR;  /**< 0x60  */
+        volatile uint32_t EPORT6CR;  /**< 0x64  */
+        volatile uint32_t EPORT7CR;  /**< 0x68  */
+        volatile uint32_t SWAPCR2;   /**< 0x6C  */
+        volatile uint32_t SWAPCR3;   /**< 0x70  */
+        volatile uint32_t SWAPCR4;   /**< 0x74  */
+        volatile uint32_t SWAPCR5;   /**< 0x78  */
+        volatile uint32_t I2SIOCR;   /**< 0x7C  */
+        volatile uint32_t SSISLVCR;  /**< 0x80  */
+        volatile uint32_t PWMTCR;    /**< 0x84  */
+        volatile uint32_t CANCR;     /**< 0x88  */
+        volatile uint32_t SPI1CR;    /**< 0x8C  */
+        volatile uint32_t SPI2CR;    /**< 0x90  */
+        volatile uint32_t SPI3CR;    /**< 0x94  */
+    } IOCTRL_TypeDef;
+    
+#define IOCTRL_UARTCR_GINT_SWAP (24)                 /**<  */
+#define IOCTRL_BASE_ADDR (0x40000000)   /**< IOCTRL寄存器基地址 */
+#define IOCTRL ((IOCTRL_TypeDef *)IOCTRL_BASE_ADDR) 
+#define _ioctrl_uart_swap_dis(bits) _bit_clr(IOCTRL->UARTCR, bits << IOCTRL_UARTCR_GINT_SWAP)
+#define _ioctrl_uart_swap_en(bits) _bit_set(IOCTRL->UARTCR, bits << IOCTRL_UARTCR_GINT_SWAP)
+ typedef enum
+    {
+        TX1_GINT4 = 0x10,
+        RX1_GINT0 = 0x01,
+        TX2_GINT5 = 0x20,
+        RX2_GINT3 = 0x08,
+        TX3_GINT1 = 0x02,
+        RX3_GINT2 = 0x04,
+    } IOCTRL_UARTSwapGintTypeDef;        
+void DRV_IOCTRL_UARTSwapGint(uint8_t pins, IOCTRL_UARTSwapGintENTypeDef swap)
+{
+    if (SWAP_EN == swap)
+    {
+        _ioctrl_uart_swap_en(pins);
+    }
+    else
+    {
+        _ioctrl_uart_swap_dis(pins);
+    }
+}
+        
+int HAL_IOCTRL_UARTSwapGint(IOCTRL_UARTSwapTypeDef *pUARTSwap)
+{
+    DRV_IOCTRL_UARTSwapGint(pUARTSwap->pins, pUARTSwap->swap);
+
+    return 0;
+}
+
 static int uart_init(uint8_t port_id, uint32_t baud_rate)
 {
-
+    uint32_t tmp_rate = 0;
     if (port_id == 2)
     {
         // TODO
-        uint32_t tmp_rate = 0;
+        
         static uint8_t ucIsUart2Inited = 0;
         if (ucIsUart2Inited)
         {
@@ -533,6 +622,24 @@ static int uart_init(uint8_t port_id, uint32_t baud_rate)
         UART2->PURD |= 0x81;
 
         ucIsUart2Inited = 1;
+    }else if (port_id == 3){
+        IOCTRL_UARTSwapTypeDef uart_gint_Swap;    //默认GINT与UART引脚不交换   
+        uart_gint_Swap.pins = TX3_GINT1 | RX3_GINT2;   
+        uart_gint_Swap.swap = SWAP_EN;  
+        HAL_IOCTRL_UARTSwapGint(&uart_gint_Swap);
+
+        tmp_rate = (g_ips_clk * 4 / baud_rate) >> 6;
+        UART3->BRDF = (((g_ips_clk * 8 / baud_rate) + 1) / 2) & 0x003f;
+        UART3->BRDF = (((g_ips_clk * 8 / baud_rate) + 1) / 2) & 0x003f;
+    
+        UART3->BDH = (uint8_t)((tmp_rate >> 8) & 0x00ff);
+        UART3->BDL = (uint8_t)(tmp_rate & 0x00ff);
+        
+        UART3->CR2 = 0x00;
+        UART3->CR1 = 0x00;
+        UART3->CR2 |= (UART_RE|UART_CR2_TE_MASK);
+
+
     }
 
     return 0;
@@ -675,15 +782,6 @@ void ft_sys_wake_up(void)
 {
 
     SYS_ClkInitTypeDef clk_init;
-
-#if (__FPU_USED == 1)
-    // SCB->CPACR |= ((3UL << 10 * 2) | /* set CP10 Full Access */
-    //  (3UL << 11 * 2)); /* set CP11 Full Access */
-#endif
-
-#ifdef UNALIGNED_SUPPORT_DISABLE
-    // SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
-#endif
 
     /* Recommended to enable debug clock to prevent simulation failure due to clock modification errors */
 

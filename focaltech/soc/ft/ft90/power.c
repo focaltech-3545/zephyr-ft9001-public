@@ -23,8 +23,7 @@ static uint64_t ft_enter_deep_sleep_time = 0;
 
 static void ft_enable_wakeup_irq_source()
 {
-
-    // EPORT_ITConfig((EPORT_TypeDef*)DT_REG_ADDR(DT_NODELABEL(eport5)),0,1);
+    EPORT_ITConfig((EPORT_TypeDef*)DT_REG_ADDR(DT_NODELABEL(eport5)),0,1);
 }
 
 void ft_pm_enter_deep_sleep(bool enable)
