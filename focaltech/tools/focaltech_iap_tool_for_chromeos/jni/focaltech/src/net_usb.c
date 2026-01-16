@@ -229,11 +229,11 @@ int mbedtls_usb_exist(uint16_t *pid, uint16_t *vid)
         {
             if(desc.idVendor == FOCAL_EC_VID){
 				if((desc.idProduct!=FOCAL_EC_PID_TEST)&&(desc.idProduct!=FOCAL_EC_PID_9865)&&(desc.idProduct!=FOCAL_EC_PID_9869)){
-				FF_LOGI("find google devive vid:%x:pid:%x,is not focal fingerprint,continue.",desc.idVendor,desc.idProduct);
-				continue;
-			}
-	    }
-	    ret = 0;
+					FF_LOGI("find google devive vid:%x:pid:%x,is not focal fingerprint,continue.",desc.idVendor,desc.idProduct);
+					continue;
+				}
+	    	}
+	    	ret = 0;
             *vid = desc.idVendor;
             *pid = desc.idProduct;
             FF_LOGI("find device pid %x:vid %x", desc.idProduct, desc.idVendor);
