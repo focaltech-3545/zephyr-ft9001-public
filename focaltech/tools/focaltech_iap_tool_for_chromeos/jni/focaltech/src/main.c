@@ -274,11 +274,30 @@ int main(int argc, char **argv)
             update_fw(&info);
             return 0;
         }
+		
+		if (!memcmp(tmp, "enter_usb_suspend", sizeof("enter_usb_suspend")))
+        {
+            mbedtls_usb_free();
+            focal_device_disable();
+            return 0;
+        }
+        
+        if (!memcmp(tmp, "enter_usb_resume", sizeof("enter_usb_resume")))
+        {
+            mbedtls_usb_free();
+            return 0;
+        }
 
         if (info.next_mode != FORCE_UPDATE_MDOE)
         {
             info.next_mode = EC_MODE;
         }
+    }
+    
+    if (!memcmp(tmp, "get_ec_version", sizeof("get_ec_version")))
+    {
+            //already show fw version before.
+            return 0;
     }
 
     if (access(info.ec_bin, F_OK))

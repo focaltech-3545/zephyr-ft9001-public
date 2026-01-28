@@ -41,10 +41,11 @@ CXXFLAGS:= -fvisibility=hidden $(CFLAGS) -DHAVE_CONFIG_H
   
 #source file
 
-SOURCE  :=														\
-  $(LOCAL_PATH)/libusb-1.0.29/libusb/core.c 			       	\
-  $(LOCAL_PATH)/libusb-1.0.29/libusb/descriptor.c 		   		\
-  $(LOCAL_PATH)/libusb-1.0.29/libusb/hotplug.c 		       		\
+SOURCE  :=                                                \
+  $(LOCAL_PATH)/libusb-1.0.29/libusb/libusb_port.c        \
+  $(LOCAL_PATH)/libusb-1.0.29/libusb/core.c               \
+  $(LOCAL_PATH)/libusb-1.0.29/libusb/descriptor.c         \
+  $(LOCAL_PATH)/libusb-1.0.29/libusb/hotplug.c            \
   $(LOCAL_PATH)/libusb-1.0.29/libusb/io.c 			         	\
   $(LOCAL_PATH)/libusb-1.0.29/libusb/sync.c 			       	\
   $(LOCAL_PATH)/libusb-1.0.29/libusb/strerror.c 		     	\

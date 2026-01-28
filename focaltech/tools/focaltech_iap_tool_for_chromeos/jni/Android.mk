@@ -14,6 +14,7 @@ LOCAL_LDFLAGS += -pie -fPIE
 LOCAL_LDLIBS    := -llog
 
 LOCAL_SRC_FILES := 				                               \
+  $(LOCAL_PATH)/libusb-1.0.29/libusb/libusb_port.c 			       \
   $(LOCAL_PATH)/libusb-1.0.29/libusb/core.c 			       \
   $(LOCAL_PATH)/libusb-1.0.29/libusb/descriptor.c 		   \
   $(LOCAL_PATH)/libusb-1.0.29/libusb/hotplug.c 		       \
