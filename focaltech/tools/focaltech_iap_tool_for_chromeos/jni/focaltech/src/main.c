@@ -7,6 +7,7 @@
 #include <linux/fs.h>
 #include <sys/ioctl.h>
 #include <sys/vfs.h>
+#include <limits.h>
 
 #include "ff_common.h"
 #include "ff_log.h"
@@ -200,7 +201,7 @@ int main(int argc, char **argv)
     int ret = 0;
     ft_device_info_t info;
 
-    char tmp[64];
+    char tmp[PATH_MAX];
 
     if (argc < 2 && argc > 3)
     {
