@@ -536,7 +536,7 @@ void update_fw(ft_device_info_t *info)
             goto END;
         }
 
-        if (info->next_mode == FORCE_UPDATE_MDOE)
+        if (info->next_mode == FORCE_UPDATE_MODE)
         {
             FF_LOGD("force back to rom boot inner");
             ft_back_to_rom_boot();

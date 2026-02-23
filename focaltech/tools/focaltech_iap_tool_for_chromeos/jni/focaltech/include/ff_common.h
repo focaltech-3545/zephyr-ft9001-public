@@ -45,7 +45,7 @@ extern "C"
         EC_MODE,
         RO_MODE,
         RW_MODE,
-        FORCE_UPDATE_MDOE,
+        FORCE_UPDATE_MODE,
     } ft_device_mode_t;
 
     typedef struct ft_device_info_st
