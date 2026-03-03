@@ -90,7 +90,7 @@ int ft_sg_open(uint16_t vendor_id, uint16_t product_id)
             FF_LOGD("Interface %d: bInterfaceClass=0x%02x, bInterfaceSubClass=0x%02x", iface_desc->bInterfaceNumber,
                     iface_desc->bInterfaceClass, iface_desc->bInterfaceSubClass);
 
-            if (iface_desc->bInterfaceClass == LIBUSB_CLASS_MASS_STORAGE && iface_desc->bInterfaceSubClass == 0x06)
+            if (iface_desc->bInterfaceClass == LIBUSB_CLASS_MASS_STORAGE)// && iface_desc->bInterfaceSubClass == 0x06)
             { // SCSI transparent
                 found_msc = 1;
 
