@@ -32,7 +32,6 @@
 #include <zephyr/kernel.h>
 
 #include <zephyr/drivers/usb/udc.h>
-#include <zephyr/dt-bindings/usb/usb.h>
 
 #include <zephyr/drivers/reset.h>
 #include <zephyr/sys/util.h>
