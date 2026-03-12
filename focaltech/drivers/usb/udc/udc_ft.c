@@ -47,7 +47,7 @@ LOG_MODULE_REGISTER(usb_device_init, LOG_LEVEL_ERR);
 
 #include "cpm_drv.h"
 #include "usb_drv.h"
-
+void udelay(unsigned int us);
 enum udc_ft_msg_type
 {
     // FT_EVT_TRANSFER
@@ -1864,12 +1864,15 @@ static int udc_ft_host_wakeup(const struct device *dev)
     0= Turn off the recovery signal
     1= to produce the recovery signal BIT 2*/
 
+    udc_ft_hal_lock(dev);
     if (udc_is_suspended(dev))
     {
         USBx->UCSR |= USB_POWER_RESUME;
-        k_sleep(K_MSEC(10));
+        //k_sleep(K_MSEC(10));
+        udelay(8*1000);
         USBx->UCSR &= ~(USB_POWER_RESUME);
     }
+    udc_ft_hal_unlock(dev);
 
     return 0;
 }
