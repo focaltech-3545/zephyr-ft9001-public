@@ -234,6 +234,10 @@ uint8_t EPORT_PullConfig(EPORT_TypeDef* Eport, const EPORT_PINx GpioNum, const E
         }
         else if (GpioNo >= EPORT_PIN40 && GpioNo <= EPORT_PIN47)// Handle GINT40~47
         {
+            if (GpioNo == EPORT_PIN40)
+            {
+                IOCTRL->SPICR &= ~BITS(11);
+            }
             IOCTRL->EPORT5CR &= ~BITS(24 + GpioNum);
         }
         else if (GpioNo >= EPORT_PIN48 && GpioNo <= EPORT_PIN55)// Handle GINT48~55
@@ -312,6 +316,10 @@ uint8_t EPORT_PullConfig(EPORT_TypeDef* Eport, const EPORT_PINx GpioNum, const E
         }
         else if (GpioNo >= EPORT_PIN40 && GpioNo <= EPORT_PIN47)// Handle GINT40~47
         {
+            if (GpioNo == EPORT_PIN40)
+            {
+                IOCTRL->SPICR |= BITS(11);
+            }
             IOCTRL->EPORT5CR |= BITS(24 + GpioNum);
         }
         else if (GpioNo >= EPORT_PIN48 && GpioNo <= EPORT_PIN55)// Handle GINT48~55
