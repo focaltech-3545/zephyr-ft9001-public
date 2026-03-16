@@ -133,6 +133,7 @@ struct udc_ft_data
     uint8_t addr; /* Host assigned USB device address */
     uint8_t tailrom;
     bool enum_done;
+    bool disable_suspend_irq;
 #ifdef CONFIG_PM
     atomic_t pm_lock;
 #endif
@@ -464,7 +465,7 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
 
     udc_ft_hal_lock(dev);
     saved_idx = USBx->EINDEX;
-    ;
+    
     USBx->EINDEX = ep_idx;
     if (ep == USB_CONTROL_EP_OUT)
     {
@@ -1541,20 +1542,26 @@ static void ft_udbd_isr(const struct device *dev)
     if (usbd_intrusb & USB_INTERRUPT_SUSPEND)
     {
         // disable usb py
-        msg.type = FT_UDC_MSG_TYPE_SUSUPEND;
-        ft_udc_send_msg(dev, &msg);
+		if(!priv->disable_suspend_irq){
+       	 	msg.type = FT_UDC_MSG_TYPE_SUSUPEND;
+        	ft_udc_send_msg(dev, &msg);
+		}
     }
     /* USB resume */
     if (usbd_intrusb & USB_INTERRUPT_RESUME)
     {
+		priv->disable_suspend_irq=false;
         ft_usb_resume_event(dev);
     }
     /* USB SOF */
     if (usbd_intrusb & USB_INTERRUPT_SOF)
     {
         priv->sof_num = USBx->FNUMR;
-        // udc_submit_event(dev, UDC_EVT_SOF, 0);
-        ft_usb_resume_event(dev);
+        if(!priv->disable_suspend_irq){
+            //udc_submit_event(dev, UDC_EVT_SOF, 0);
+            ft_usb_resume_event(dev);
+        }
+
     }
 
     /* Handle EP0 interrupt */
@@ -1855,6 +1862,11 @@ static int udc_ft_host_wakeup(const struct device *dev)
 {
     const struct udc_ft_config *config = dev->config;
     FT_USBD_Type *const USBx = config->base;
+ 
+	printk("ft remote wakeup--\n");
+  
+    struct udc_ft_data *priv = udc_get_private(dev);
+    
 
     LOG_WRN("Remote wakeup");
     /*When the device is operating in the suspended mode,
@@ -1867,9 +1879,11 @@ static int udc_ft_host_wakeup(const struct device *dev)
     udc_ft_hal_lock(dev);
     if (udc_is_suspended(dev))
     {
+        priv->disable_suspend_irq=true;
+        printk("ft remote wakeup start,%x\n",USBx->UCSR);
         USBx->UCSR |= USB_POWER_RESUME;
-        //k_sleep(K_MSEC(10));
-        udelay(8*1000);
+        //udelay(8*1000);
+        k_sleep(K_MSEC(10));
         USBx->UCSR &= ~(USB_POWER_RESUME);
     }
     udc_ft_hal_unlock(dev);
@@ -2186,6 +2200,7 @@ static const struct udc_api udc_ft_api = {
     static struct udc_ft_data udc_priv_##n = {                                                                         \
         .msgq = &udc_ft_msgq_##n,                                                                                      \
         .enum_done = false,                                                                                            \
+        .disable_suspend_irq=false,                                                                                    \
         IF_ENABLED(CONFIG_UDC_FT_DMA, (.status_sem = Z_SEM_INITIALIZER(udc_priv_##n.status_sem, 0, 1), ))};            \
                                                                                                                        \
     static struct udc_data udc_data_##n = {                                                                            \
