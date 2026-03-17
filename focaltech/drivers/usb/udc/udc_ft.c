@@ -1880,11 +1880,10 @@ static int udc_ft_host_wakeup(const struct device *dev)
     if (udc_is_suspended(dev))
     {
         priv->disable_suspend_irq=true;
-        printk("ft remote wakeup start,%x\n",USBx->UCSR);
         USBx->UCSR |= USB_POWER_RESUME;
-        //udelay(8*1000);
         k_sleep(K_MSEC(10));
         USBx->UCSR &= ~(USB_POWER_RESUME);
+        priv->disable_suspend_irq=false;
     }
     udc_ft_hal_unlock(dev);
 
