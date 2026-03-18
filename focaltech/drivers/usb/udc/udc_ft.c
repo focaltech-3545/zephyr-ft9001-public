@@ -1319,6 +1319,7 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
     priv->enum_done = false;
     irq_unlock(key);
 #ifdef CONFIG_PM
+    ft_pm_enter_deep_sleep(false);
     udc_ft_pm_policy_lock_get(dev);
 #endif
     udc_submit_event(dev, UDC_EVT_RESET, 0);
@@ -1362,7 +1363,8 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
     {
         return 0;
     }
-    key = irq_lock();
+
+ //FT_USBD_Type *const USBx = config->base;
     
     /* UDC stack would handle bottom-half processing */
     if (!udc_is_suspended(dev) && udc_is_enabled(dev))
@@ -1370,11 +1372,14 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
         LOG_WRN("Enter SUSPEND State");
         udc_set_suspended(dev, true);
         udc_submit_event(dev, UDC_EVT_SUSPEND, 0);
+
+        ft_pm_enter_deep_sleep(true);
     }
-    irq_unlock(key);
+  
 #ifdef CONFIG_PM
-    ft_pm_enter_deep_sleep(true);
-    udc_ft_pm_policy_lock_put(dev);
+        
+        udc_ft_pm_policy_lock_put(dev);
+  
 #endif
     return 0;
 }
@@ -1512,6 +1517,8 @@ static void ft_udbd_isr(const struct device *dev)
     uint32_t usbd_intdma = USBx->DMA_INTR;
 #endif
 
+    static uint8_t send_sof_once=0;
+
     usbd_intrusb = USBx->INTRUSB;
     usbd_inttx = USBx->INTRTX;
     usbd_intrx = USBx->INTRRX;
@@ -1536,11 +1543,14 @@ static void ft_udbd_isr(const struct device *dev)
     if (usbd_intrusb & USB_INTERRUPT_RESET)
     {
         msg.type = FT_UDC_MSG_TYPE_RESET;
+        send_sof_once=0;
         ft_udc_send_msg(dev, &msg);
     }
     /* USB suspend */
     if (usbd_intrusb & USB_INTERRUPT_SUSPEND)
     {
+        send_sof_once=0;
+        printk("usbd_intrusb=%x/%x/%x\n",USBx->E0CSR_L,USBx->RXCSR_L,USBx->TXCSR_L);
         // disable usb py
 		if(!priv->disable_suspend_irq){
        	 	msg.type = FT_UDC_MSG_TYPE_SUSUPEND;
@@ -1551,16 +1561,21 @@ static void ft_udbd_isr(const struct device *dev)
     if (usbd_intrusb & USB_INTERRUPT_RESUME)
     {
 		priv->disable_suspend_irq=false;
+        send_sof_once=1;
         ft_usb_resume_event(dev);
     }
     /* USB SOF */
     if (usbd_intrusb & USB_INTERRUPT_SOF)
     {
         priv->sof_num = USBx->FNUMR;
-        if(!priv->disable_suspend_irq){
-            //udc_submit_event(dev, UDC_EVT_SOF, 0);
+        if(!priv->disable_suspend_irq&&send_sof_once==0){
+            
             ft_usb_resume_event(dev);
+            send_sof_once=1;
+            //udc_submit_event(dev, UDC_EVT_SOF, 0);
         }
+
+        
 
     }
 
