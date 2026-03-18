@@ -23,7 +23,7 @@
             reg = <0>;
             #address-cells = <1>;
             #size-cells = <1>;
-            cpu-power-states = <&idle &suspend>;
+            cpu-power-states = <&suspend>;
             mpu: mpu@e000ed90 {
                 compatible = "arm,armv7m-mpu";
                 reg = <0xe000ed90 0x40>;
