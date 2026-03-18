@@ -1354,7 +1354,7 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
 
 static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg *msg)
 {
-    unsigned int key;
+    
     struct udc_ft_data *priv = udc_get_private(dev);
     printk("usb suspend\n");
 
