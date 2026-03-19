@@ -1373,7 +1373,9 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
         udc_set_suspended(dev, true);
         udc_submit_event(dev, UDC_EVT_SUSPEND, 0);
 
+#ifdef CONFIG_PM
         ft_pm_enter_deep_sleep(true);
+#endif
     }
   
 #ifdef CONFIG_PM

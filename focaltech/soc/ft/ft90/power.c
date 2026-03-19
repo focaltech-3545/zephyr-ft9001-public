@@ -51,7 +51,7 @@ static void ft_enter_sleep_prepare()
 
         void ft_sys_wake_up(void);
         ft_sys_wake_up();
-        printk("exit low power\n");
+        //printk("exit low power\n");
         LP_LowpowerOut();
         random_init();
 }
@@ -82,7 +82,7 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
         if (enter_sleep)
         {
             enter_sleep=false;
-            printk("enter Low power from suspend\n");
+            //printk("enter Low power from suspend\n");
             ft_enable_wakeup_irq_source();
             ft_enter_deep_sleep_time = 0;
             SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
