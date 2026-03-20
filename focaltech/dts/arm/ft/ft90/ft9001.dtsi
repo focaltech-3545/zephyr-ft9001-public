@@ -32,13 +32,6 @@
     };
     power-states {
 
-            idle: idle {
-                compatible = "zephyr,power-state";
-	 			power-state-name = "runtime-idle";
-	 			min-residency-us = <5000>;
-	 			exit-latency-us = <400>;
-            };
-
 			suspend: suspend {
 				compatible = "zephyr,power-state";
 				power-state-name = "suspend-to-idle";
