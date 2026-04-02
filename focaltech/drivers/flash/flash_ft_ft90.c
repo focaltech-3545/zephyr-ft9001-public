@@ -19,6 +19,10 @@
 #define FT_FLASH_BASE_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_MAX_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_flash))
 #define FT_FLASH_SIZE_PER_ID 0x4000000
+#define SSI_ID 1
+#define SR1 1
+#define SR2 2
+#define SR3 3
 
 typedef struct
 {
@@ -59,6 +63,13 @@ typedef struct
     __IO uint32_t XRXIOCR;        // 0x110
     __IO uint32_t reserve_114;    // 0x114
 } SSI_TypeDef;
+
+struct flash_ft_qspi_xip_data {
+    #ifdef CONFIG_FLASH_EX_OP_ENABLED
+        /* Lock of the status registers. */
+        bool status_lock;
+    #endif
+};
 
 extern const struct str_flash g_ssi_cfg[];
 extern uint8_t (*xip_flash_erase)(struct str_flash *p_ssi_para);
@@ -107,91 +118,122 @@ static uint32_t drv_ssi_get_ssi_id(uint32_t addr)
         __builtin_arm_nop();                                                                                           \
     } while (0)
 #if 1
-__attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t st)
+__attribute__((section(".ramfunc"))) __attribute__((noinline))   int flash_ft_qspi_xip_lock(const struct device *dev,
+    struct ft_xip_ex_ops_lock_in *op_in)
 {
+    struct flash_ft_qspi_xip_data *data = dev->data;
 
-#define SSI_ID 1
-#define SRx 1
+	data->status_lock = op_in->enable;
+
+	return 0;
+}
+
+__attribute__((section(".ramfunc"))) __attribute__((noinline))   int flash_ft_qspi_xip_lock_state(const struct device *dev,
+    struct ft_xip_ex_ops_lock_state_out *op_out)
+{
+    struct flash_ft_qspi_xip_data *data = dev->data;
+
+	op_out->state = data->status_lock;
+
+	return 0;
+}
+
+__attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t idx, uint8_t st)
+{
+    volatile SSI_TypeDef *SSI=(SSI_TypeDef *)0x13000000;
+
+    volatile uint32_t temp,CR0_Back ;
+    uint32_t timeout = 0,reg;
+
+    reg = arch_irq_lock(); //disable interrupt
+
+    CCM_SSICFG &= ~((1 << (16 + SSI_ID - 1)) | (1 << (20 + SSI_ID - 1))); //disable XIP
     
-        volatile SSI_TypeDef *SSI=(SSI_TypeDef *)0x13000000;
+    temp=SSI->SR;
+    SSI->SSIENR=0;
 
-        volatile uint32_t temp,CR0_Back ;
-        uint32_t timeout = 0,reg;
+    CR0_Back = SSI->CTRLR0;
 
-        
-        reg = arch_irq_lock(); //disable interrupt
-
-        CCM_SSICFG &= ~((1 << (16 + SSI_ID - 1)) | (1 << (20 + SSI_ID - 1))); //disable XIP
-
-        
-        temp=SSI->SR;
-        SSI->SSIENR=0;
-
-        CR0_Back = SSI->CTRLR0;
-
-        SSI->CTRLR0 &= ~(0x3 << 22);           //CR0 STD mode
-        SSI->CTRLR0 |= (0x1 << 14);            //CR0 SSTE
-        SSI->CTRLR0 &= ~(0x3 << 10);           //CR0 Tmode
-        SSI->CTRLR0 &= ~(0x1F << 0);           //CR0 DFS,8 bits data
-        SSI->CTRLR0 |= 0x07;
-       
-        SSI->SSIENR=1;
+    SSI->CTRLR0 &= ~(0x3 << 22);           //CR0 STD mode
+    SSI->CTRLR0 |= (0x1 << 14);            //CR0 SSTE
+    SSI->CTRLR0 &= ~(0x3 << 10);           //CR0 Tmode
+    SSI->CTRLR0 &= ~(0x1F << 0);           //CR0 DFS,8 bits data
+    SSI->CTRLR0 |= 0x07;
+    
+    SSI->SSIENR=1;
         
 	FT_NOP();
 
-        SSI->DR=0x05;	
+    /*read sr*/
+    if (idx == 1)
+        SSI->DR=0x05;
+    else if (idx == 2)
+        SSI->DR=0x35;  
+    else if (idx == 3)
+        SSI->DR=0x15;
+    else
+        goto exit;    
+	
+    SSI->DR=0x55;
+    
+	FT_NOP();
+    while(SSI->SR&0x01);   
+
+    temp=SSI->DR;
+    temp=SSI->DR;
+
+    if(st&0x80){
+        goto exit;
+    }
+
+    SSI->DR=0x06;
+    
+	FT_NOP();
+    while(SSI->SR&0x01);
+
+    temp=SSI->DR;
+
+	FT_NOP();
+
+    /*write sr*/
+    if (idx == 1)
+        SSI->DR=0x01;
+    else if (idx == 2)
+        SSI->DR=0x31;  
+    else if (idx == 3)
+        SSI->DR=0x11;
+    else
+        goto exit;    
+
+    SSI->DR=st;
+
+	FT_NOP();
+    while(SSI->SR&0x1);
+    
+    temp=SSI->DR;
+    temp=SSI->DR;
+    
+    do {
+        timeout++;
+        if(timeout > 1000000)
+            break;
+        SSI->DR=0x05;
         SSI->DR=0x55;
 
-    
-	FT_NOP();
-        while(SSI->SR&0x01);   
- 
-        temp=SSI->DR;
-        temp=SSI->DR;
-   
-        if(st&0x80){
-            goto exit;
-        }
-
-        SSI->DR=0x06;
-    
-    
-	FT_NOP();
-        while(SSI->SR&0x01);
- 
-        temp=SSI->DR;
-
-	FT_NOP();
-        SSI->DR=0x1;
-        SSI->DR=st;
-
-	FT_NOP();
+        FT_NOP();
         while(SSI->SR&0x1);
-        
+    
         temp=SSI->DR;
         temp=SSI->DR;
-        
-        do{
-            timeout++;
-            if(timeout > 1000000)
-                break;
-            SSI->DR=0x05;
-            SSI->DR=0x55;
 
-	    FT_NOP();
-            while(SSI->SR&0x1);
-       
-            temp=SSI->DR;
-            temp=SSI->DR;
+    } while((temp&0x01) == 0x01);
 
-        }while((temp&0x01) == 0x01);
- 
-        SSI->DR=0x04;
+    SSI->DR=0x04;
 
 	FT_NOP();
-        while(SSI->SR&0x01);
- 
-        temp=SSI->DR; 
+    while(SSI->SR&0x01);
+
+    temp=SSI->DR; 
 
 exit:
     SSI->SSIENR=0;
@@ -203,6 +245,7 @@ exit:
     arch_irq_unlock(reg);
     return temp&0xff;
 }
+
 #else
 
 uint8_t wr_FlashSRx(uint8_t st)
@@ -574,52 +617,75 @@ static int flash_ft90_init(const struct device *dev)
 
 #if defined(CONFIG_FLASH_EX_OP_ENABLED)
 
+static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask)
+{
+    uint8_t sr_curr;
+	uint8_t sr_new;
+
+    sr_curr = wr_FlashSRx(idx, 0x80);
+    //printk("--sr_curr:0x%02x\n", sr_curr);
+    sr_new = (sr_curr & ~mask) | reg;
+    //printk("--sr_new:0x%02x\n", sr_new);
+
+    /*SR2 bit2(QE) must be set, if not set, MCU can't fetch instructions from flash*/
+    if (idx == SR2) {
+        sr_new |= 0x02;
+    }
+    
+    if (sr_new > 0x7f)
+    {
+
+        printk("--wrong value\n");
+        return;
+    }
+
+    if (sr_new != sr_curr)
+    {
+        wr_FlashSRx(idx, sr_new);
+    }
+}
+
+static uint8_t flash_read_sr(uint8_t idx)
+{
+    return wr_FlashSRx(idx, 0x80);
+}
+
 static int flash_ft90_ex_op(const struct device *dev, uint16_t code, const uintptr_t in, void *out)
 {
 
     ARG_UNUSED(dev);
-    uint8_t *value;
+    struct flash_ft_qspi_xip_data *data = dev->data;
+    struct ft_xip_ex_ops_set_in *op_in = (struct ft_xip_ex_ops_set_in *)in;
+    struct ft_xip_ex_ops_get_out *op_out = (struct ft_xip_ex_ops_get_out *)out;
+    struct ft_xip_ex_ops_lock_in *op_in_lock = (struct ft_xip_ex_ops_lock_in *)in;
+    struct ft_xip_ex_ops_lock_state_out *op_out_lock = (struct ft_xip_ex_ops_lock_state_out *)out;
 
     switch (code)
     {
-
-    case FT_FLASH_EX_OP_SET_WP:
-        if (out)
-        {
-            value = (uint8_t *)out;
-            //printk("unsupport wp right now,ingnore,enable=%d\n", *value);
+    case FLASH_FT_XIP_EX_OP_SET_STATUS_REGS:
+        if (data->status_lock) {
+            return -EPERM;
         }
+        //printk("--write sr:0x%02x 0x%02x 0x%02x\n", op_in->regs[0], op_in->regs[1], op_in->regs[2]);
+        flash_write_sr(SR1, op_in->regs[0], op_in->masks[0]);
+        flash_write_sr(SR2, op_in->regs[1], op_in->masks[1]);
+        flash_write_sr(SR3, op_in->regs[2], op_in->masks[2]);
         break;
 
-    case FT_FLASH_EX_OP_GET_WP:
-        //printk("unsupport wp right now,ingnore\n");
-        if (in)
-        {
-            value = (uint8_t *)in;
-            *value = 0;
-        }
+    case FLASH_FT_XIP_EX_OP_GET_STATUS_REGS:
+        op_out->regs[0] = flash_read_sr(SR1);
+        op_out->regs[1] = flash_read_sr(SR2);
+        op_out->regs[2] = flash_read_sr(SR3);
+        //printk("--read sr: 0x%02x, 0x%02x, 0x%02x\n", op_out->regs[0], op_out->regs[1], op_out->regs[2]); //only read sr1
         break;
 
-    case FT_FLASH_FT90_EX_OP_WR_SR:
-        value = (uint8_t *)out;
-
-        //		printk("WR sr=%d",*value);
-        if (*value > 0x7f)
-        {
-
-            printk("wrong value\n");
-            return 0;
-        }
-
-        wr_FlashSRx(*value);
-
+    case FLASH_FT_XIP_EX_OP_LOCK:
+        flash_ft_qspi_xip_lock(dev, op_in_lock);
         break;
-
-    case FT_FLASH_FT90_EX_OP_RD_SR:
-        value = (uint8_t *)in;
-        *value = wr_FlashSRx(0x80);
-        // printk("RD sr=%d",*value);
-        break;
+        
+    case FLASH_FT_XIP_EX_OP_LOCK_STATE:
+        flash_ft_qspi_xip_lock_state(dev, op_out_lock);
+        break;    
 
     default:
         break;
@@ -649,8 +715,9 @@ static const struct flash_driver_api flash_ft90_api = {
 };
 
 #define FLASH_FT_INIT(n)                                                                                               \
+    static struct flash_ft_qspi_xip_data flash_ft_qspi_xip_data_##n;                                             \
                                                                                                                        \
-    DEVICE_DT_INST_DEFINE(n, &flash_ft90_init, NULL, NULL, NULL, POST_KERNEL, CONFIG_FLASH_FT_FT90_INIT_PRIORITY,      \
+    DEVICE_DT_INST_DEFINE(n, &flash_ft90_init, NULL, &flash_ft_qspi_xip_data_##n, NULL, POST_KERNEL, CONFIG_FLASH_FT_FT90_INIT_PRIORITY,      \
                           &flash_ft90_api);
 
 DT_INST_FOREACH_STATUS_OKAY(FLASH_FT_INIT)
