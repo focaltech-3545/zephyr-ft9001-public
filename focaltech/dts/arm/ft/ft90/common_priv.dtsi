@@ -81,6 +81,9 @@
     pinctrl-names = "default";
 };
 
+&otp {
+	status = "okay";
+};
 
 &spi2 {
 	status = "okay";

@@ -13,13 +13,35 @@
 #include <zephyr/drivers/flash.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/storage/flash_map.h>
-
+#include <zephyr/drivers/otp.h>
 #include "flash_driver.h"
 
 
 void gpio_init(void);
 
 #ifdef CONFIG_MOCK
+
+int ft_otp_read()
+{
+    static const struct device *const otp_dev = DEVICE_DT_GET(DT_NODELABEL(otp));
+
+    uint8_t data[100];
+    int offset=36;
+
+    memset(data,0,sizeof(data));
+
+    data[0]=0x5b;
+    data[4]=0x5e;
+
+    otp_program(otp_dev,offset,data,8);
+    memset(data,0,sizeof(data));
+
+    otp_read(otp_dev, 0, data, 100);
+
+    printk("data=%x/%x/%x/%x/%x\n",data[offset],data[offset+1],data[offset+2],data[offset+3],data[offset+4]);
+
+    return 0;
+}
 
 #if 1
 int ft_flash_test(void)

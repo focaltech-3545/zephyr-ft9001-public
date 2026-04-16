@@ -150,7 +150,7 @@ struct udc_ft_data
 static int udc_ft_clock_request(const struct device *dev, bool on)
 {
     const struct udc_ft_config *cfg = dev->config;
-    int ret;
+    int ret=0;
 
     __ASSERT_NO_MSG(dev != NULL);
 
@@ -163,7 +163,7 @@ static int udc_ft_clock_request(const struct device *dev, bool on)
     }
     else
     {
-        ret = clock_control_off(clk, (clock_control_subsys_t *)&cfg->clk_src);
+        //ret = clock_control_off(clk, (clock_control_subsys_t *)&cfg->clk_src);
     }
 
     return ret;
@@ -573,8 +573,21 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
         }
         else
         {
-            USBx->TXCSR_L = DEV_TXCSR_CLR_DATA_TOG;
-            LOG_ERR("real busy,reset interrupt ep\n");
+            //USBx->TXCSR_L = DEV_TXCSR_CLR_DATA_TOG;
+            //LOG_ERR("real busy,reset interrupt ep\n");
+
+        
+            if(DEV_TXCSR_FIFO_NOT_EMPTY&USBx->TXCSR_L){
+
+                LOG_ERR("usb host doesn't recv interrupt data.");
+                //USBx->TXCSR_H|=DEV_TXCSR_FRC_DATA_TOG;
+                USBx->TXCSR_L=DEV_TXCSR_FLUSH_FIFO;
+
+                USBx->EINDEX = saved_idx;
+                udc_ft_hal_unlock(dev);
+
+                return 0;
+            }
         }
 
         USBx->EINDEX = saved_idx;
@@ -1342,6 +1355,8 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
     udc_ft_hal_lock(dev);
     /* Re-Enable control endpoints */
     USBC_BusReset(config->base, config->speed_idx);
+
+    USBC_Enbale_Irq_Ep0(config->base);
     udc_ft_hal_unlock(dev);
 
     /* UDC stack would handle bottom-half processing,
@@ -1546,19 +1561,10 @@ static void ft_udbd_isr(const struct device *dev)
     {
         msg.type = FT_UDC_MSG_TYPE_RESET;
         send_sof_once=0;
+
         ft_udc_send_msg(dev, &msg);
     }
-    /* USB suspend */
-    if (usbd_intrusb & USB_INTERRUPT_SUSPEND)
-    {
-        send_sof_once=0;
-        printk("usbd_intrusb=%x/%x/%x\n",USBx->E0CSR_L,USBx->RXCSR_L,USBx->TXCSR_L);
-        // disable usb py
-		if(!priv->disable_suspend_irq){
-       	 	msg.type = FT_UDC_MSG_TYPE_SUSUPEND;
-        	ft_udc_send_msg(dev, &msg);
-		}
-    }
+  
     /* USB resume */
     if (usbd_intrusb & USB_INTERRUPT_RESUME)
     {
@@ -1640,6 +1646,19 @@ static void ft_udbd_isr(const struct device *dev)
         ep_idx++;
     }
 #endif /*CONFIG_UDC_FT_DMA*/
+
+
+      /* USB suspend */
+    if (usbd_intrusb & USB_INTERRUPT_SUSPEND)
+    {
+        send_sof_once=0;
+        // disable usb py
+        if(!priv->disable_suspend_irq){
+            msg.type = FT_UDC_MSG_TYPE_SUSUPEND;
+            ft_udc_send_msg(dev, &msg);
+        }
+    }
+    
     return;
 }
 
@@ -1850,6 +1869,7 @@ static int udc_ft_ep_clear_halt(const struct device *dev, struct udc_ep_config *
 static int udc_ft_set_address(const struct device *dev, const uint8_t addr)
 {
     struct udc_ft_data *priv = udc_get_private(dev);
+    static uint8_t addr0_cnt=0;
     /*
      * If the status stage already finished (which depends entirely on when
      * the host sends IN token) then NRF_USBD->USBADDR will have the same
@@ -1869,9 +1889,31 @@ static int udc_ft_set_address(const struct device *dev, const uint8_t addr)
      * the Set Address one will be overwritten without a trace.
      */
 
-    LOG_DBG("Set new address %u for %p", addr, dev);
+    
     priv->addr = addr;
+    //printk("Set new address %u for %p\n", addr, dev);
 
+    if(addr){
+        addr0_cnt=0;
+    }else{
+        addr0_cnt++;
+    }
+
+udc_ft_hal_lock(dev);
+    const struct udc_ft_config *config = dev->config;
+    FT_USBD_Type *const USBx = config->base;
+    USBx->FADDRR = priv->addr;
+
+    if(addr0_cnt>3){
+        
+        LOG_ERR("usb reset 3 times,usb host must be err,rst mcu");
+    
+        HAL_RESET_SoftReset();
+      
+        addr0_cnt=0;
+    }
+udc_ft_hal_unlock(dev);
+    
     return 0;
 }
 

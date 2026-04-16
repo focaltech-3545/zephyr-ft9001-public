@@ -1,0 +1,11 @@
+# Copyright (c) 2021 Focaltech Systems CO.,Ltd
+# SPDX-License-Identifier: Apache-2.0
+
+config OTP_FT
+	bool "Focaltech FT9001 OTP driver"
+	default y
+	depends on SOC_FAMILY_FOCALTECH
+	select OTP_HAS_DRIVER
+	help
+	  This option enables the FT9001 OTP controller
+	

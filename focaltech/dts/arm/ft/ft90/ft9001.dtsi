@@ -64,6 +64,12 @@
             status = "disabled";
         };
 
+        otp: otp@40003000 {
+            compatible = "ft,ft90-otp";
+            reg = <0x40003000 0x1000>;
+            status = "disabled";
+        };
+
         rcc: rcc@40004000 {
             compatible = "ft,ft90-rcc";
             #clock-cells = <1>;
