@@ -622,6 +622,10 @@ static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask)
     uint8_t sr_curr;
 	uint8_t sr_new;
 
+	if (mask == 0) {
+		return;
+	}
+	
     sr_curr = wr_FlashSRx(idx, 0x80);
     //printk("--sr_curr:0x%02x\n", sr_curr);
     sr_new = (sr_curr & ~mask) | reg;
@@ -634,7 +638,6 @@ static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask)
     
     if (sr_new > 0x7f)
     {
-
         printk("--wrong value\n");
         return;
     }
