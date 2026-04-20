@@ -25,6 +25,7 @@
 		zephyr,entropy = &trng;
 	};
 
+
 };
 /*&usart0 {
         status = "okay";
@@ -118,10 +119,12 @@ zephyr_udc0: &usb {
 	//pinctrl-names = "default";
 	status = "okay";
 };
-/*
+
 &wdt0 {
 	status = "okay";
 };
+
+/*
 &tc0 {
 	status = "okay";
 };*/
