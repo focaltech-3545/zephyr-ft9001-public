@@ -34,9 +34,9 @@ struct ft_config_page {
   uint8_t reserved_data4[0x8];
 } __attribute__((packed));
 
-#define OTP_DATA_ADDR (0x08200000)
+//#define OTP_DATA_ADDR (0x08200000)
 #define OTP_CONFIG_OFFSET (0x100)
-#define OTP_BASE_ADDR (0x40003000)
+#define OTP_BASE_ADDR (DT_REG_ADDR(DT_NODELABEL(efm)))
 #define OTP_ACTIVE_MAGIC 0x55aa55aa
 
 #define OTP ((OTP_TypeDef *)OTP_BASE_ADDR)

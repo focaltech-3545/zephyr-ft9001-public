@@ -29,13 +29,11 @@ static void ft_enable_wakeup_irq_source()
 void ft_pm_enter_deep_sleep(bool enable)
 {
     if(enable){
-	ft_enter_deep_sleep_time = k_uptime_get();
+	   ft_enter_deep_sleep_time = k_uptime_get();
 
     }else{
-	ft_enter_deep_sleep_time = 0;
+	   ft_enter_deep_sleep_time = 0;
     }
-
-
 }
 
 typedef void(*SSID_FUNC)(char);

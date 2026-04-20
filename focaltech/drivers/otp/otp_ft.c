@@ -23,8 +23,7 @@ LOG_MODULE_REGISTER(otp_ft);
 static K_MUTEX_DEFINE(lock);
 
 struct ft_otp_config {
-  void *base;
-  unsigned int upper_fuse_limit;
+  uint8_t*base;
 };
 
 static inline void otp_ft_lock(void) {
@@ -44,7 +43,7 @@ static inline void otp_ft_unlock(void) {
 static int ft_opt_program(volatile uint32_t *otp_addr, const void *buf) {
   unsigned int reg_tmp, write_data;
   unsigned int ahb3_clk = ft_get_ahb3_clk();
-  printk("w_otp_addr=%p\n", otp_addr);
+
 
   if (!buf) {
     LOG_ERR("buf is null");
@@ -104,6 +103,10 @@ static int otp_ft_program(const struct device *dev, off_t offset,
 
   int ret = 0, i;
 
+  const struct ft_otp_config *config = dev->config;
+  uint8_t* base = config->base;
+
+
   if (len % sizeof(uint32_t) || offset % sizeof(uint32_t)) {
     LOG_ERR("notice! otp addr algin 4");
     return -1;
@@ -120,7 +123,7 @@ static int otp_ft_program(const struct device *dev, off_t offset,
   }
 
   volatile uint32_t *otp_addr =
-      (volatile unsigned int *)(OTP_DATA_ADDR + OTP_CONFIG_OFFSET + offset +
+      (volatile unsigned int *)(base + OTP_CONFIG_OFFSET + offset +
                                 offsetof(struct ft_config_page,
                                          reserved_data3));
   printk("otp_addr=%p,offset=%ld\n", otp_addr, offset);
@@ -141,12 +144,19 @@ static int otp_ft_program(const struct device *dev, off_t offset,
 }
 #endif /* CONFIG_OTP_PROGRAM */
 
+
+
 static int otp_ft_read(const struct device *dev, off_t offset, void *buf,
                        size_t len) {
   printk("%s enter,offset=%lx,len=%ld\n", __func__, offset, offset);
 
+  const struct ft_otp_config *config = dev->config;
+  uint8_t* base =(uint8_t*) config->base;
+
+  printk("r_otp_addr=%p,OTP=%p\n", base,OTP);
+
   volatile uint32_t *otp_addr =
-      (volatile unsigned int *)(OTP_DATA_ADDR + OTP_CONFIG_OFFSET + offset +
+      (volatile unsigned int *)(base + OTP_CONFIG_OFFSET + offset +
                                 offsetof(struct ft_config_page,
                                          reserved_data3));
 
@@ -196,8 +206,11 @@ static DEVICE_API(otp, otp_ft_api) = {
 
 };
 
-#define OTP_FT_DEVICE_DEFINE(n)                                                \
-  DEVICE_DT_INST_DEFINE(n, NULL, NULL, NULL, NULL, PRE_KERNEL_1,               \
+#define OTP_FT_DEVICE_DEFINE(n)                                                                                 \
+  static const struct ft_otp_config ft_otp_config_##n = {                                                       \
+        .base = (uint8_t *)DT_INST_REG_ADDR(n),                                                             \
+                                                                            };                                  \
+  DEVICE_DT_INST_DEFINE(n, NULL, NULL, NULL, &ft_otp_config_##n, PRE_KERNEL_1,                                  \
                         CONFIG_OTP_INIT_PRIORITY, &otp_ft_api);
 
 DT_INST_FOREACH_STATUS_OKAY(OTP_FT_DEVICE_DEFINE)

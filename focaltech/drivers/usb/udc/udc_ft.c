@@ -131,7 +131,8 @@ struct udc_ft_data
     uint8_t setup[8];
     uint16_t sof_num;
     uint8_t addr; /* Host assigned USB device address */
-    uint8_t tailrom;
+    uint8_t usb_enum_err;
+    uint8_t setup_action;
     bool enum_done;
     bool disable_suspend_irq;
 #ifdef CONFIG_PM
@@ -150,7 +151,7 @@ struct udc_ft_data
 static int udc_ft_clock_request(const struct device *dev, bool on)
 {
     const struct udc_ft_config *cfg = dev->config;
-    int ret=0;
+    int ret;
 
     __ASSERT_NO_MSG(dev != NULL);
 
@@ -163,7 +164,7 @@ static int udc_ft_clock_request(const struct device *dev, bool on)
     }
     else
     {
-        //ret = clock_control_off(clk, (clock_control_subsys_t *)&cfg->clk_src);
+        ret = clock_control_off(clk, (clock_control_subsys_t *)&cfg->clk_src);
     }
 
     return ret;
@@ -175,8 +176,8 @@ static void udc_ft_pm_policy_lock_get(const struct device *dev)
     struct udc_ft_data *priv = udc_get_private(dev);
     if (atomic_test_and_set_bit(&priv->pm_lock, 0) == 0)
     {
-	pm_device_runtime_get(dev);
-	pm_policy_state_lock_get(PM_STATE_SUSPEND_TO_IDLE, PM_ALL_SUBSTATES);
+    pm_device_runtime_get(dev);
+    pm_policy_state_lock_get(PM_STATE_SUSPEND_TO_IDLE, PM_ALL_SUBSTATES);
     }
 }
 static void udc_ft_pm_policy_lock_put(const struct device *dev)
@@ -184,8 +185,8 @@ static void udc_ft_pm_policy_lock_put(const struct device *dev)
     struct udc_ft_data *priv = udc_get_private(dev);
 
     if (atomic_test_and_clear_bit(&priv->pm_lock, 0) == 1)
-    {	
-	pm_device_runtime_put(dev);
+    {
+    pm_device_runtime_put(dev);
         pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_IDLE, PM_ALL_SUBSTATES);
     }
 }
@@ -338,7 +339,7 @@ static int udc_ft_pm_action(const struct device *dev, enum pm_device_action acti
         break;
     // case PM_DEVICE_ACTION_TURN_OFF:
     // case PM_DEVICE_ACTION_TURN_ON:
-    //	break;
+    //  break;
     default:
         return -ENOTSUP;
     }
@@ -465,20 +466,22 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
 
     udc_ft_hal_lock(dev);
     saved_idx = USBx->EINDEX;
-    
+
     USBx->EINDEX = ep_idx;
     if (ep == USB_CONTROL_EP_OUT)
     {
-        csr_l = USBx->E0CSR_L;
-        if (csr_l & DEV_CSR0_SENTSTALL)
-        {
-            csr_l &= ~DEV_CSR0_SENTSTALL;
-        }
-        if (csr_l & DEV_CSR0_RXPKTRDY)
-        {
-            csr_l |= DEV_CSR0_SERVICE_RXPKTRDY;
-        }
-        USBx->E0CSR_L = DEV_CSR0_SERVICE_RXPKTRDY;
+        #if 0
+            csr_l = USBx->E0CSR_L;
+            if (csr_l & DEV_CSR0_SENTSTALL)
+            {
+                csr_l &= ~DEV_CSR0_SENTSTALL;
+            }
+            if (csr_l & DEV_CSR0_RXPKTRDY)
+            {
+                csr_l |= DEV_CSR0_SERVICE_RXPKTRDY;
+            }
+            USBx->E0CSR_L = DEV_CSR0_SERVICE_RXPKTRDY;
+        #endif
     }
     else
     {
@@ -501,7 +504,7 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
     return 0;
 }
 
-static int ft_ctrl_feed_dout(const struct device *dev, const uint16_t length)
+/*static int ft_ctrl_feed_dout(const struct device *dev, const uint16_t length)
 {
     struct udc_ft_data *priv = udc_get_private(dev);
     struct udc_ep_config *ep_cfg = udc_get_ep_cfg(dev, USB_CONTROL_EP_OUT);
@@ -519,26 +522,19 @@ static int ft_ctrl_feed_dout(const struct device *dev, const uint16_t length)
     k_fifo_put(&ep_cfg->fifo, buf);
     ft_udc_xfer_out(dev, ep, true);
     return 0;
-}
+}*/
 static int ft_udc_reset_interrupt_ep_netbuf(const struct device *dev, struct udc_ep_config *ep_cfg, int ret)
 {
-    struct net_buf *buf;
     int err = 0;
-    buf = udc_buf_get_all(ep_cfg);
-    if (buf)
-    {
-        err = udc_submit_ep_event(dev, buf, ret);
-        if (err)
-        {
-
-            LOG_ERR("udc submit err %d", err);
-        }
-    }
+    printk("reset_interrupt\n");
+    return err;
+    udc_ep_cancel_queued(dev, ep_cfg);
 
     return err;
 }
 static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // ready to send data from Host
 {
+    
     const struct udc_ft_config *config = dev->config;
     struct udc_ep_config *ep_cfg = udc_get_ep_cfg(dev, ep);
     struct net_buf *buf;
@@ -569,17 +565,15 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
         udc_ep_set_busy(ep_cfg, false);
         if (!(USBx->TXCSR_L & DEV_TXCSR_TXPKTRDY))
         {
-            LOG_DBG("fake busy ep,ignore\n");
+            printk("fake busy ep,ignore\n");
         }
         else
         {
             //USBx->TXCSR_L = DEV_TXCSR_CLR_DATA_TOG;
             //LOG_ERR("real busy,reset interrupt ep\n");
-
-        
             if(DEV_TXCSR_FIFO_NOT_EMPTY&USBx->TXCSR_L){
 
-                LOG_ERR("usb host doesn't recv interrupt data.");
+                LOG_ERR("usb host doesn't recv interrupt data.%x",USBx->TXCSR_L);
                 //USBx->TXCSR_H|=DEV_TXCSR_FRC_DATA_TOG;
                 USBx->TXCSR_L=DEV_TXCSR_FLUSH_FIFO;
 
@@ -646,11 +640,13 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
         }
     }
 
+
+
     if (data_len)
     {
         if (csr_l & DEV_TXCSR_FIFO_NOT_EMPTY)
         {
-            LOG_WRN("DATA is not sent out");
+            LOG_ERR("DATA is not sent out");
         }
         fifo_ptr = udc_ft_get_fifo_ptr(USBx, ep_idx);
 #ifdef CONFIG_UDC_FT_DMA
@@ -661,31 +657,28 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
 #else  /* CONFIG_UDC_FT_DMA */
 
         udc_ft_write_packet(fifo_ptr, data_ptr, data_len);
-	
-#ifdef FT_SHOW_USB_CMD
-        if(ep&&ep!=0x80&&data_len<64){
-            for(uint8_t i=0;i<data_len;i++){
-                printk("%x ",data_ptr[i]);
-            }
-            printk("-ep%x-\n",ep);
-	}
-#endif
-	
+
+
 
 #endif /* CONFIG_UDC_FT_DMA */
 
-        net_buf_pull(buf, data_len);
+        
 
         if (ep == USB_CONTROL_EP_IN)
         {
+           
             if (data_len < config->ep_cfg_in[ep_idx].caps.mps)
             {
                 USBx->E0CSR_L = DEV_CSR0_TXPKTRDY | DEV_CSR0_DATAEND;
+              
             }
             else
             {
                 USBx->E0CSR_L = DEV_CSR0_TXPKTRDY;
             }
+
+           
+
         }
         else
         {
@@ -699,18 +692,24 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
                 USBx->TXCSR_L = DEV_TXCSR_TXPKTRDY;
             }
 
-            if (is_interrupt_ep)
+            
+
+            /*if (is_interrupt_ep)
             {
                 ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, 0);
-            }
+            }*/
         }
+
+        net_buf_pull(buf, data_len);
+
+        
     }
     else if (udc_ep_buf_has_zlp(buf))
     {
         udc_ep_buf_clear_zlp(buf);
         if (ep == USB_CONTROL_EP_IN)
         {
-            LOG_INF("Wrong ZLP %x", ep);
+            LOG_ERR("Wrong ZLP %x", ep);
             USBx->E0CSR_L = DEV_CSR0_TXPKTRDY | DEV_CSR0_DATAEND;
         }
         else
@@ -728,7 +727,7 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
     }
     else
     {
-        LOG_INF("Len 0 pkt :%x", ep);
+        LOG_ERR("Len 0 pkt :%x", ep);
         if (ep == USB_CONTROL_EP_IN)
         {
             // Nothing is done
@@ -809,14 +808,7 @@ static inline int ft_udc_msg_handle_out(const struct device *dev, struct udc_ft_
 #else  /*CONFIG_UDC_FT_DMA*/
     udc_ft_read_packet(fifo_ptr, data_ptr, data_len);
 
-#ifdef FT_SHOW_USB_CMD     
-    if(ep&&ep!=0x80&&data_len<64){
-            for(uint8_t i=0;i<data_len;i++){
-                printk("%x ",data_ptr[i]);
-            }
-            printk("-ep%x-\n",ep);
-    }
-#endif
+
 
 #endif /*CONFIG_UDC_FT_DMA*/
     USBx->EINDEX = saved_idx;
@@ -909,176 +901,92 @@ int ft_udc_msg_handle_xfer(const struct device *dev, struct udc_ft_msg *msg)
     return err;
 }
 
-static int ft_udc_handle_ep0_tx(const struct device *dev)
-{
-    uint8_t ep = USB_CONTROL_EP_IN;
-    struct net_buf *buf;
-    struct udc_ep_config *ep_cfg = udc_get_ep_cfg(dev, USB_CONTROL_EP_IN);
 
-    udc_ep_set_busy(ep_cfg, false);
 
-    buf = udc_buf_peek(ep_cfg);
-    if (buf == NULL)
-    {
-        return 0;
-    }
 
-    LOG_INF("tx process buf->len:%x, buf->size:%x  zlp:%x\n", buf->len, buf->size, udc_ep_buf_has_zlp(buf));
-    if (buf->len || udc_ep_buf_has_zlp(buf))
-    {
-        ft_udc_xfer_in(dev, ep, false);
-        return 0;
-    }
-
-    /* To submit the peeked buffer */
-    buf = udc_buf_get(ep_cfg);
-
-    if (udc_ctrl_stage_is_status_in(dev) || udc_ctrl_stage_is_no_data(dev))
-    {
-        /* Status stage finished, notify upper layer */
-        udc_ctrl_submit_status(dev, buf);
-    }
-
-    if (udc_ctrl_stage_is_data_in(dev))
-    {
-        /*
-         * s-in-[status] finished, release buffer.
-         * Since the controller supports auto-status we cannot use
-         * if (udc_ctrl_stage_is_status_out()) after state update.
-         */
-        net_buf_unref(buf);
-    }
-
-    /* Update to next stage of control transfer */
-    udc_ctrl_update_stage(dev, buf);
-    return 0;
-}
-
-static int ft_udc_handle_ep0_rx(const struct device *dev) // a packet is got
-{
-    const struct udc_ft_config *config = dev->config;
-    struct udc_ft_data *priv = udc_get_private(dev);
-    struct udc_ep_config *ep_cfg = udc_get_ep_cfg(dev, USB_CONTROL_EP_OUT);
-    struct net_buf *buf;
-    uint8_t ep = USB_CONTROL_EP_OUT;
-    uint8_t ep_idx;
-    uint8_t saved_idx;
-    uint32_t data_len;
-    uint16_t read_count;
-    uint8_t *data_ptr;
-    volatile uint8_t *fifo_ptr;
-    FT_USBD_Type *const USBx = config->base;
-
-    udc_ep_set_busy(ep_cfg, false); // allow next transfer
-
-    buf = udc_buf_peek(ep_cfg);
-    if (buf == NULL)
-    {
-        LOG_ERR("No buffer queued for ep=0x%02x", ep);
-        return -ENODATA;
-    }
-
-    ep_idx = USB_EP_GET_IDX(ep);
-    data_len = priv->ctrlout_tailroom;
-    data_ptr = net_buf_tail(buf);
-
-    udc_ft_hal_lock(dev);
-    saved_idx = USBx->EINDEX;
-    ;
-    USBx->EINDEX = ep_idx;
-    read_count = USBx->E0COUNTR;
-
-    if (read_count > data_len || read_count > net_buf_tailroom(buf))
-    {
-        LOG_ERR("Buffer queued for ep=0x%02x cannot accommodate packet", ep);
-        USBx->EINDEX = saved_idx;
-        udc_ft_hal_unlock(dev);
-        return -ENOBUFS;
-    }
-
-    data_len = MIN(data_len, read_count);
-    fifo_ptr = udc_ft_get_fifo_ptr(USBx, ep_idx);
-    udc_ft_read_packet(fifo_ptr, data_ptr, data_len);
-    net_buf_add(buf, data_len);
-    USBx->EINDEX = saved_idx;
-    udc_ft_hal_unlock(dev);
-    priv->ctrlout_tailroom -= data_len;
-    if (priv->ctrlout_tailroom > 0)
-    {
-        buf = udc_buf_peek(ep_cfg);
-        if (buf)
-        {
-            ft_udc_xfer_out(dev, ep, false);
-        }
-        return 0;
-    }
-
-    buf = udc_buf_get(ep_cfg);
-    if (buf == NULL)
-    {
-        LOG_ERR("ep 0x%02x ok, queue is empty", ep);
-        return 0;
-    }
-
-    /*
-     * In case s-in-status, controller supports auto-status therefore we
-     * do not have to call udc_ctrl_stage_is_status_out().
-     */
-    udc_ctrl_update_stage(dev, buf);
-
-    if (udc_ctrl_stage_is_status_in(dev))
-    {
-        udc_ctrl_submit_s_out_status(dev, buf);
-    }
-
-    return 0;
-}
-
-static int ft_udc_handle_ep0_setup(const struct device *dev) // a in packet is sent to host
+static int ft_udc_handle_ep0_setup(const struct device *dev,FT_USBD_Type *const USBx) // a in packet is sent to host
 {
     struct udc_ft_data *priv = udc_get_private(dev);
     struct usb_setup_packet *setup = (void *)priv->setup;
-    uint8_t *data_ptr;
-    struct net_buf *buf;
-    int err;
+    //uint8_t *data_ptr;
+    //struct net_buf *buf;
     struct udc_ep_config *cfg_out = udc_get_ep_cfg(dev, USB_CONTROL_EP_OUT);
     struct udc_ep_config *cfg_in = udc_get_ep_cfg(dev, USB_CONTROL_EP_IN);
 
-    /* Make sure there isn't any obsolete data stage buffer queued */
-    buf = udc_buf_get_all(cfg_out);
-    if (buf)
-    {
-        net_buf_unref(buf);
-        LOG_WRN("Release EP_OUT-setup");
-    }
+    uint8_t csr_l=DEV_CSR0_SERVICE_RXPKTRDY;
 
-    buf = udc_buf_get_all(cfg_in);
-    if (buf)
-    {
-        net_buf_unref(buf);
-        LOG_INF("Release EP_IN-setup");
-    }
+
+    /* Make sure there isn't any obsolete data stage buffer queued */
+    udc_purge_queues(dev);
 
     udc_ep_set_busy(cfg_out, false);
     udc_ep_set_busy(cfg_in, false);
 
-    buf = udc_ctrl_alloc(dev, USB_CONTROL_EP_OUT, 8);
-    if (buf == NULL)
-    {
-        LOG_ERR("allocate error for Setup");
-        return -ENOMEM;
-    }
-    udc_ep_buf_set_setup(buf);
-    data_ptr = net_buf_tail(buf);
-    bytecpy(data_ptr, (uint8_t *)priv->setup, 8);
-    net_buf_add(buf, 8);
 
     // LOG_WRN("setup:%02x %02x : %02x %02x %02x %02x %02x %02x",data_ptr[0], data_ptr[1], data_ptr[2],
     // data_ptr[3],data_ptr[4],data_ptr[5],data_ptr[6],data_ptr[7]);
 
     /* Update to next stage of CTRL transfer */
-    udc_ctrl_update_stage(dev, buf);
+    
+    if((setup->bmRequestType&0x60)==0x20){
+        printk("USB_REQUEST_CLASS\n");
+        USBx->E0CSR_L = csr_l;
 
+    }else{
+
+              switch(setup->bRequest){
+
+                case USB_SREQ_SET_ADDRESS:
+                    priv->addr = setup->wValue;
+                    printk("SET_ADDRESS %x\n", setup->wValue);
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+                    priv->setup_action=USB_SREQ_SET_ADDRESS;
+                    break;
+
+
+                case USB_SREQ_SET_CONFIGURATION:
+                    printk("set config\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+                    priv->setup_action=USB_SREQ_SET_CONFIGURATION;
+                    break;
+                case USB_SREQ_GET_CONFIGURATION:
+                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND; 
+                     printk("USB_GET_CONFIGURATION\n"); 
+                     break; 
+                case USB_SREQ_SET_INTERFACE:
+                    printk("set interface\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+                    break;
+                case USB_SREQ_GET_INTERFACE:
+                    printk("get config\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY;
+                    break;
+                case USB_SREQ_GET_STATUS:
+                    printk("get status\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+                    break;
+                case USB_SREQ_CLEAR_FEATURE:
+                    printk("USB_CLEAR_FEATURE\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+                    break;
+                case USB_SREQ_SET_FEATURE:
+                    printk("USB_SET_FEATURE\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+                    break;
+                case USB_SREQ_GET_DESCRIPTOR:
+                    LOG_DBG("USB_SREQ_GET_DESCRIPTOR\n");
+                    USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY;
+                    break;
+          
+                default:
+                    printk("unsport bRequest=%x\n",setup->bRequest);
+                   // USBC_EP0ClearSendStall(config->base);
+                    break;
+        }
+
+    }
+
+#if 0
     // USB_REQTYPE_DIR_TO_DEVICE
     if ((USB_REQTYPE_GET_DIR(setup->bmRequestType) == USB_REQTYPE_DIR_TO_DEVICE) &&
         (USB_REQTYPE_GET_TYPE(setup->bmRequestType) == USB_REQTYPE_TYPE_STANDARD) &&
@@ -1089,28 +997,11 @@ static int ft_udc_handle_ep0_setup(const struct device *dev) // a in packet is s
         priv->addr = setup->wValue;
         LOG_INF("SET_ADDRESS %x", setup->wValue);
     }
+#endif
 
-    if (udc_ctrl_stage_is_data_out(dev))
-    { // data out
-        /*  Allocate and feed buffer for DATA OUT stage */
-        err = ft_ctrl_feed_dout(dev, udc_data_stage_length(buf));
-        if (err == -ENOMEM)
-        {
-            LOG_ERR("ft_udc_handle_ep0_setup err:%x", err);
-            udc_submit_ep_event(dev, buf, err);
-        }
-        // LOG_WRN("EP0 OUT:%d", udc_data_stage_length(buf));
-    }
-    else if (udc_ctrl_stage_is_data_in(dev))
-    {
-        udc_ctrl_submit_s_in_status(dev);
-        priv->ctrlout_tailroom = 0;
-    }
-    else
-    {
-        udc_ctrl_submit_s_status(dev); // generate a 0 len IN trans
-        priv->ctrlout_tailroom = 0;
-    }
+    udc_setup_received(dev, priv->setup);
+  
+    
     return 0;
 }
 
@@ -1119,9 +1010,9 @@ static int ft_udc_msg_handle_ep0(const struct device *dev)
 {
     const struct udc_ft_config *config = dev->config;
     const struct udc_ft_data *priv = udc_get_private(dev);
-    struct udc_ep_config *ep_cfg;
-    struct udc_data *data = dev->data;
-    struct net_buf *buf;
+    //struct udc_ep_config *ep_cfg;
+ 
+    //struct net_buf *buf;
     volatile uint8_t *fifo_ptr;
     uint16_t read_count;
     uint8_t saved_idx;
@@ -1130,7 +1021,7 @@ static int ft_udc_msg_handle_ep0(const struct device *dev)
     uint8_t csr_l;
     uint8_t csr_l_hex;
     struct usb_setup_packet *setup = (void *)priv->setup;
-    int err;
+ 
     FT_USBD_Type *const USBx = config->base;
 
     ep_idx = USB_EP_GET_IDX(ep);
@@ -1139,16 +1030,18 @@ static int ft_udc_msg_handle_ep0(const struct device *dev)
     USBx->EINDEX = ep_idx;
     csr_l = USBx->E0CSR_L;
     csr_l_hex = csr_l;
-    LOG_DBG("-- handle_ep0 ep0_st:%x, stage:%x\n", csr_l_hex, data->stage);
+    //printk("ep0_st:%x\n", csr_l_hex);
     if (csr_l & DEV_CSR0_SENTSTALL)
     {
-        LOG_DBG("ft_udc_msg_handle_ep0 stalled");
+        LOG_INF("ft_udc_msg_handle_ep0 stalled");
+        USBx->EINDEX&=~DEV_CSR0_SENTSTALL;
     }
 
     if (csr_l & DEV_CSR0_SETUPEND)
     { // control transfer data process is done
         USBx->E0CSR_L = DEV_CSR0_SERVICE_SETUPEND;
-        LOG_ERR("EP0 SETUPEND :%x, stage:%x\n", csr_l, data->stage);
+
+        LOG_ERR("EP0 SETUPEND :%x\n", csr_l);
         USBx->EINDEX = saved_idx;
         udc_ft_hal_unlock(dev);
         return 0;
@@ -1156,128 +1049,24 @@ static int ft_udc_msg_handle_ep0(const struct device *dev)
 
     if (csr_l & DEV_CSR0_RXPKTRDY)
     {
-        if (udc_ctrl_stage_is_data_in(dev))
+        
+       
+        read_count = USBx->E0COUNTR;
+    
+        if (read_count != 8)
         {
-            // LOG_INF("RX INT udc_ctrl_stage_is_data_in, status-out");
-            err = ft_udc_handle_ep0_tx(dev);
-            // status-out/status-out->setup
-        }
-        if (udc_ctrl_stage_is_no_data(dev))
-        {
-            /* Status stage finished, notify upper layer */
-            LOG_ERR("RX INT FAKE STATUS is missed,%u, ep0_st:%x", data->stage, csr_l_hex);
-        }
-        // 1. setup
-        if (udc_ctrl_stage_is_data_out(dev))
-        {
-            // LOG_INF("RX INT udc_ctrl_stage_is_data_out, status-in");
-            USBx->EINDEX = saved_idx;
-            udc_ft_hal_unlock(dev);
-            ft_udc_handle_ep0_rx(dev);
-            udc_ft_hal_lock(dev);
-            saved_idx = USBx->EINDEX;
-        }
-        else
-        {
-            read_count = USBx->E0COUNTR;
-            if (read_count != 8)
-            {
                 USBx->EINDEX = saved_idx;
                 udc_ft_hal_unlock(dev);
                 return 0;
-            }
-            LOG_INF("RX INT Ep0 setup, stage: %u, count:%x ep0_st:%x", data->stage, read_count, csr_l_hex);
-            fifo_ptr = udc_ft_get_fifo_ptr(USBx, ep_idx);
-            udc_ft_read_packet(fifo_ptr, (uint8_t *)setup, 8);
-            ft_udc_handle_ep0_setup(dev);
         }
+        LOG_INF("RX INT Ep0 setup,count:%x ep0_st:%x", read_count, csr_l_hex);
+        fifo_ptr = udc_ft_get_fifo_ptr(USBx, ep_idx);
+        udc_ft_read_packet(fifo_ptr, (uint8_t *)setup, 8);
+        ft_udc_handle_ep0_setup(dev,USBx);
     }
-    else
-    {
-        if (udc_ctrl_stage_is_data_in(dev))
-        {
-            LOG_INF("TX INT udc_ctrl_stage_is_data_in, status-out");
-            // status[out]
-            ft_udc_handle_ep0_tx(dev);
-        }
-        else
-        {
-            if (udc_ctrl_stage_is_data_out(dev))
-            {
-                LOG_DBG("TX INT udc_ctrl_stage_is_data_out, status-in :%d", priv->ctrlout_tailroom);
-            }
-            else if (udc_ctrl_stage_is_no_data(dev))
-            {
-                LOG_ERR("TX INT  udc_ctrl_stage_is_no_data, In occurs");
-            }
-            else
-            {
-                LOG_INF("TX INT Ep0 In done, In occurs, %u, ep0_st:%x", data->stage, csr_l_hex);
-            }
-            ep_cfg = udc_get_ep_cfg(dev, USB_CONTROL_EP_IN);
-            buf = udc_buf_get(ep_cfg);
-            if (unlikely(buf == NULL))
-            {
-                LOG_DBG("ep 0x%02x queue is empty in ep0 process", USB_CONTROL_EP_IN);
-            }
-            else
-            {
-                net_buf_unref(buf);
-                LOG_INF("TX INT IN transfer finished, release the buffer");
-            }
-        }
-    }
+
     USBx->EINDEX = saved_idx;
     udc_ft_hal_unlock(dev);
-    return 0;
-}
-
-static int ft_udc_msg_handle_fake_status_in(const struct device *dev, struct udc_ft_msg *msg)
-{
-    const struct udc_ft_config *config = dev->config;
-    struct net_buf *buf;
-    uint8_t saved_idx;
-    uint8_t ep = USB_CONTROL_EP_IN;
-    uint8_t ep_idx;
-    struct udc_ep_config *ep_cfg = udc_get_ep_cfg(dev, USB_CONTROL_EP_IN);
-    FT_USBD_Type *const USBx = config->base;
-
-    buf = udc_buf_get(ep_cfg);
-    if (unlikely(buf == NULL))
-    {
-        LOG_DBG("ep 0x%02x queue is empty", USB_CONTROL_EP_IN);
-        return 0;
-    }
-
-    if (udc_ctrl_stage_is_status_in(dev) || udc_ctrl_stage_is_no_data(dev))
-    {
-        /* Status stage finished, notify upper layer */
-        udc_ctrl_submit_status(dev, buf);
-    }
-
-    if (udc_ctrl_stage_is_data_in(dev))
-    {
-        /*
-         * s-in-[status] finished, release buffer.
-         * Since the controller supports auto-status we cannot use
-         * if (udc_ctrl_stage_is_status_out()) after state update.
-         */
-        net_buf_unref(buf);
-    }
-
-    // k_sleep(K_MSEC(10));
-
-    /* Update to next stage of control transfer */
-    udc_ctrl_update_stage(dev, buf);
-
-    ep_idx = USB_EP_GET_IDX(ep);
-    udc_ft_hal_lock(dev);
-    saved_idx = USBx->EINDEX;
-    USBx->EINDEX = ep_idx;
-    USBx->E0CSR_L = DEV_CSR0_SERVICE_RXPKTRDY | DEV_CSR0_DATAEND;
-    USBx->EINDEX = saved_idx;
-    udc_ft_hal_unlock(dev);
-
     return 0;
 }
 
@@ -1330,6 +1119,7 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
     k_msgq_purge(priv->msgq);
     key = irq_lock();
     priv->enum_done = false;
+    priv->setup_action=0;
     irq_unlock(key);
 #ifdef CONFIG_PM
     ft_pm_enter_deep_sleep(false);
@@ -1369,7 +1159,7 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
 
 static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg *msg)
 {
-    
+
     struct udc_ft_data *priv = udc_get_private(dev);
     printk("usb suspend\n");
 
@@ -1380,7 +1170,7 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
     }
 
  //FT_USBD_Type *const USBx = config->base;
-    
+
     /* UDC stack would handle bottom-half processing */
     if (!udc_is_suspended(dev) && udc_is_enabled(dev))
     {
@@ -1392,11 +1182,11 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
         ft_pm_enter_deep_sleep(true);
 #endif
     }
-  
+
 #ifdef CONFIG_PM
-        
+
         udc_ft_pm_policy_lock_put(dev);
-  
+
 #endif
     return 0;
 }
@@ -1433,7 +1223,9 @@ static ALWAYS_INLINE void ft_thread_handler(void *const arg)
     LOG_DBG("Driver %p thread started", dev);
     while (true)
     {
-        k_msgq_get(priv->msgq, &msg, K_FOREVER);
+        if(k_msgq_get(priv->msgq, &msg, K_FOREVER))
+            continue;
+
         err = 0;
         // LOG_INF("--handle message enter, type:%x\n", msg.type);
 
@@ -1480,9 +1272,7 @@ static ALWAYS_INLINE void ft_thread_handler(void *const arg)
             err = ft_udc_msg_handle_xfer(dev, &msg);
             break;
 
-        case FT_UDC_MSG_TYPE_STATUS_IN:
-            err = ft_udc_msg_handle_fake_status_in(dev, &msg);
-            break;
+   
 
         case FT_UDC_MSG_TYPE_SW_RECONN:
             LOG_INF("wrong message ft_thread_handler\n");
@@ -1561,14 +1351,13 @@ static void ft_udbd_isr(const struct device *dev)
     {
         msg.type = FT_UDC_MSG_TYPE_RESET;
         send_sof_once=0;
-
         ft_udc_send_msg(dev, &msg);
     }
-  
+    
     /* USB resume */
     if (usbd_intrusb & USB_INTERRUPT_RESUME)
     {
-		priv->disable_suspend_irq=false;
+        priv->disable_suspend_irq=false;
         send_sof_once=1;
         ft_usb_resume_event(dev);
     }
@@ -1577,20 +1366,20 @@ static void ft_udbd_isr(const struct device *dev)
     {
         priv->sof_num = USBx->FNUMR;
         if(!priv->disable_suspend_irq&&send_sof_once==0){
-            
+
             ft_usb_resume_event(dev);
             send_sof_once=1;
             //udc_submit_event(dev, UDC_EVT_SOF, 0);
         }
 
-        
+
 
     }
 
     /* Handle EP0 interrupt */
     if (usbd_inttx & USB_INTERRUPT_EP0)
     {
-
+        
         usbd_inttx &= ~0x1U;
         if (priv->addr)
         {
@@ -1647,18 +1436,26 @@ static void ft_udbd_isr(const struct device *dev)
     }
 #endif /*CONFIG_UDC_FT_DMA*/
 
-
-      /* USB suspend */
+    /* USB suspend */
     if (usbd_intrusb & USB_INTERRUPT_SUSPEND)
     {
         send_sof_once=0;
+        if(priv->usb_enum_err>=3){
+    
+            printk("usb reset 3 times,usb host must be err,reset usb");
+            HAL_RESET_SoftReset();
+   
+            priv->usb_enum_err=0;
+        }
+
+        //printk("usbd_intrusb=%x/%x/%x\n",USBx->E0CSR_L,USBx->RXCSR_L,USBx->TXCSR_L);
         // disable usb py
         if(!priv->disable_suspend_irq){
             msg.type = FT_UDC_MSG_TYPE_SUSUPEND;
             ft_udc_send_msg(dev, &msg);
         }
     }
-    
+
     return;
 }
 
@@ -1673,28 +1470,17 @@ static void ft_udbd_isr(const struct device *dev)
 static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *const ep_cfg, struct net_buf *buf)
 {
     struct udc_ft_msg msg = {0};
-    bool is_interrupt_ep = (USB_EP_TYPE_INTERRUPT == ep_cfg->attributes);
+    struct udc_ft_data *priv = udc_get_private(dev);
 
     udc_ft_hal_lock(dev);
 
     udc_buf_put(ep_cfg, buf);
 
-    LOG_DBG("%p enqueue [%p:%p] halted:%u, ep:%x, len:%x", dev, buf, ep_cfg, ep_cfg->stat.halted, ep_cfg->addr,
-            buf->len);
+    //printk("%p enqueue [%p:%p] halted:%u, ep:%x, len:%x\n", dev, buf, ep_cfg, ep_cfg->stat.halted, ep_cfg->addr,
+    //        buf->len);
 
     /*If the net_buf addresses do not match, it indicates that the previous interrupt transfer data failed to be
       transmitted. Perform a reset on the interrupt endpoint's net_buf.*/
-
-    if (is_interrupt_ep)
-    {
-        if (udc_buf_peek(ep_cfg) != buf)
-        {
-            LOG_ERR("endpoint buf check err!!!,buf->len=%d,ep=%x,halt=%d\n", buf->len, ep_cfg->addr,
-                    ep_cfg->stat.halted);
-
-            ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, -ECONNREFUSED);
-        }
-    }
 
     if (ep_cfg->addr == USB_CONTROL_EP_IN && buf->len == 0)
     {
@@ -1702,9 +1488,22 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
         if (bi->status)
         {
             /* Controller automatically performs status IN stage */
-            msg.type = FT_UDC_MSG_TYPE_STATUS_IN;
-            msg.xfer.ep = USB_CONTROL_EP_IN;
-            ft_udc_send_msg(dev, &msg);
+            //msg.type = FT_UDC_MSG_TYPE_STATUS_IN;
+            //msg.xfer.ep = USB_CONTROL_EP_IN;
+            //ft_udc_send_msg(dev, &msg);
+            printk("CONTROL_EP0\n");
+            if(priv->setup_action==USB_SREQ_SET_ADDRESS){
+                priv->setup_action=0;
+                buf = udc_buf_get(ep_cfg);
+                udc_submit_ep_event(dev, buf, 0);
+            }
+
+            if(priv->setup_action==USB_SREQ_SET_CONFIGURATION){
+                priv->setup_action=0;
+                buf = udc_buf_get(ep_cfg);
+                udc_submit_ep_event(dev, buf, 0);
+            }
+            
             udc_ft_hal_unlock(dev);
             return 0;
         }
@@ -1730,18 +1529,13 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
 static int udc_ft_ep_dequeue(const struct device *dev, struct udc_ep_config *const ep_cfg)
 {
     const struct udc_ft_config *config = dev->config;
-    struct net_buf *buf;
     LOG_INF("Deque:%x", ep_cfg->addr);
     udc_ft_hal_lock(dev);
     USBC_EpxReset(config->base, ep_cfg->addr);
     udc_ft_hal_unlock(dev);
 
     ep_cfg->stat.halted = false;
-    buf = udc_buf_get_all(ep_cfg);
-    if (buf)
-    {
-        udc_submit_ep_event(dev, buf, -ECONNABORTED);
-    }
+    udc_ep_cancel_queued(dev, ep_cfg);
     udc_ep_set_busy(ep_cfg, false);
     LOG_DBG("dequeue ep 0x%02x", ep_cfg->addr);
 
@@ -1761,12 +1555,11 @@ static int udc_ft_ep_enable(const struct device *dev, struct udc_ep_config *cons
     uint8_t saved_idx = USBx->EINDEX;
 
     udc_ft_hal_lock(dev);
-    LOG_INF("Enable ep 0x%02x", ep_cfg->addr);
+    LOG_DBG("Enable ep 0x%02x\n", ep_cfg->addr);
     // ep_cfg->stat.enabled = true;
 
     USBx->EINDEX = USB_EP_GET_IDX(ep_cfg->addr);
-    if (ep_cfg->addr & 0x80)
-        USBx->TXCSR_L = DEV_TXCSR_TXPKTRDY | DEV_TXCSR_CLR_DATA_TOG;
+    
 
     USBx->EINDEX = saved_idx;
     status = USBC_EpxOpen(config->base, ep_cfg->addr, ep_cfg->mps, ep_cfg->attributes, config->speed_idx);
@@ -1869,7 +1662,7 @@ static int udc_ft_ep_clear_halt(const struct device *dev, struct udc_ep_config *
 static int udc_ft_set_address(const struct device *dev, const uint8_t addr)
 {
     struct udc_ft_data *priv = udc_get_private(dev);
-    static uint8_t addr0_cnt=0;
+
     /*
      * If the status stage already finished (which depends entirely on when
      * the host sends IN token) then NRF_USBD->USBADDR will have the same
@@ -1889,31 +1682,17 @@ static int udc_ft_set_address(const struct device *dev, const uint8_t addr)
      * the Set Address one will be overwritten without a trace.
      */
 
-    
+    printk("Set new address %u for %p", addr, dev);
     priv->addr = addr;
-    //printk("Set new address %u for %p\n", addr, dev);
 
     if(addr){
-        addr0_cnt=0;
+        priv->usb_enum_err=0;
     }else{
-        addr0_cnt++;
+        priv->usb_enum_err++;
     }
 
-udc_ft_hal_lock(dev);
-    const struct udc_ft_config *config = dev->config;
-    FT_USBD_Type *const USBx = config->base;
-    USBx->FADDRR = priv->addr;
+    
 
-    if(addr0_cnt>3){
-        
-        LOG_ERR("usb reset 3 times,usb host must be err,rst mcu");
-    
-        HAL_RESET_SoftReset();
-      
-        addr0_cnt=0;
-    }
-udc_ft_hal_unlock(dev);
-    
     return 0;
 }
 
@@ -1921,11 +1700,11 @@ static int udc_ft_host_wakeup(const struct device *dev)
 {
     const struct udc_ft_config *config = dev->config;
     FT_USBD_Type *const USBx = config->base;
- 
-	printk("ft remote wakeup--\n");
-  
+
+    printk("ft remote wakeup--\n");
+
     struct udc_ft_data *priv = udc_get_private(dev);
-    
+
 
     LOG_WRN("Remote wakeup");
     /*When the device is operating in the suspended mode,
@@ -2072,12 +1851,12 @@ static int udc_ft_driver_preinit(const struct device *dev)
     int err;
 
     CPM_UsbPhyDeinit();
-	
+
 #ifdef CONFIG_PM
      atomic_set(&priv->pm_lock, 0);
      udc_ft_pm_policy_lock_get(dev);
 #endif
-	
+
     k_sleep(K_MSEC(50));
 
 
@@ -2161,9 +1940,9 @@ static int udc_ft_driver_preinit(const struct device *dev)
 
     CPM_UsbPhyInit(0x02);
 
-    udc_ft_hal_lock(dev);
-    USBC_BusReset(config->base, config->speed_idx);
-    udc_ft_hal_unlock(dev);
+    //udc_ft_hal_lock(dev);
+    //USBC_BusReset(config->base, config->speed_idx);
+    //udc_ft_hal_unlock(dev);
 
     config->make_thread(dev);
     k_sleep(K_MSEC(10));
@@ -2174,7 +1953,7 @@ static int udc_ft_driver_preinit(const struct device *dev)
     LOG_DBG("Device %p , base :%p, (max. speed %d)\n", dev, config->base, config->speed_idx);
 
     return pm_device_driver_init(dev, udc_ft_pm_action);
-    // return 0;
+
 }
 
 static void udc_ft_lock(const struct device *dev)
@@ -2261,6 +2040,8 @@ static const struct udc_api udc_ft_api = {
     static struct udc_ft_data udc_priv_##n = {                                                                         \
         .msgq = &udc_ft_msgq_##n,                                                                                      \
         .enum_done = false,                                                                                            \
+        .setup_action=0,                                                                                               \
+        .usb_enum_err=0,                                                                                               \
         .disable_suspend_irq=false,                                                                                    \
         IF_ENABLED(CONFIG_UDC_FT_DMA, (.status_sem = Z_SEM_INITIALIZER(udc_priv_##n.status_sem, 0, 1), ))};            \
                                                                                                                        \
