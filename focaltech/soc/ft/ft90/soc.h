@@ -27,6 +27,7 @@ void __attribute__((section(".ramfunc"))) xip_reback_boot(void);
 
 void ft_pm_enter_deep_sleep(bool enable);
 void DRV_DCACHE_Push(uint32_t way);
+void HAL_RESET_SoftReset(void);
 
 #endif /* _ASMLANGUAGE */
 

@@ -89,12 +89,11 @@ static int wdt_ft_disable(const struct device *dev)
 
 static int wdt_ft_install_timeout(const struct device *dev, const struct wdt_timeout_cfg *config)
 {
-    uint32_t prescaler = 0U;
-    uint32_t reload = 0U;
     uint16_t divider = 4096U;
     uint32_t ticks = (uint64_t)(80 * NSEC_PER_MSEC) * (config->window.max) / MSEC_PER_SEC;
     struct wdt_ft_data *wdt_datas = dev->data;
     const struct wdt_ft_config *cfg = dev->config;
+
 
     if (!(wdt_datas->wmr_flag))
     {
@@ -116,6 +115,9 @@ static int wdt_ft_install_timeout(const struct device *dev, const struct wdt_tim
         wdt_datas->wmr_flag = false;
         Wdt_SetCnt(cfg->base, (ticks / divider));
     }
+
+
+    Wdt_EnableFunc(cfg->base);
 
     return 0;
 }
@@ -171,6 +173,10 @@ static int wdt_ft_init(const struct device *dev)
     {
         return ret;
     }
+
+    Wdt_DisableFunc(cfg->base);
+
+
     return ret;
 }
 

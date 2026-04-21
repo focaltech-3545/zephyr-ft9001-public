@@ -55,10 +55,10 @@ static int entropy_ft_trng_pm_action(const struct device *dev, enum pm_device_ac
     switch (action)
     {
     case PM_DEVICE_ACTION_SUSPEND:
-        random_init();
+        random_deinit();
         return 0;
     case PM_DEVICE_ACTION_RESUME:
-        random_deinit();
+        random_init();
         return 0;
     default:
         return -ENOTSUP;

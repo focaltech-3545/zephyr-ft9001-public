@@ -64,6 +64,7 @@
             status = "disabled";
         };
 
+
         rcc: rcc@40004000 {
             compatible = "ft,ft90-rcc";
             #clock-cells = <1>;
@@ -88,6 +89,12 @@
                 compatible = "ft,ft90-nv-flash", "soc-nv-flash";
                 reg = <0x10000000 0x200000>;
                 write-block-size = <1>;
+            };
+
+            otp: otp@8200000{
+                compatible = "ft,ft90-otp";
+                reg = <0x08200000 0x800>;
+                status = "disabled";
             };
         };
 
