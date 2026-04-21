@@ -523,11 +523,10 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
     ft_udc_xfer_out(dev, ep, true);
     return 0;
 }*/
-static int ft_udc_reset_interrupt_ep_netbuf(const struct device *dev, struct udc_ep_config *ep_cfg, int ret)
+static inline int ft_udc_reset_interrupt_ep_netbuf(const struct device *dev, struct udc_ep_config *ep_cfg, int ret)
 {
     int err = 0;
-    printk("reset_interrupt\n");
-    return err;
+
     udc_ep_cancel_queued(dev, ep_cfg);
 
     return err;
@@ -604,7 +603,7 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
     if (udc_ep_is_busy(ep_cfg))
     {
         LOG_ERR("EPI 0x%02x busy", ep);
-        ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, 0);
+        //ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, 0);
         // udc_ep_set_busy(ep_cfg, false);
         return 0;
     }
@@ -633,7 +632,7 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
             LOG_ERR("DATA is not sent out2\n");
             USBx->EINDEX = saved_idx;
 
-            ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, 0);
+            //ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, 0);
             udc_ft_hal_unlock(dev);
 
             return 0;
@@ -1442,7 +1441,7 @@ static void ft_udbd_isr(const struct device *dev)
         send_sof_once=0;
         if(priv->usb_enum_err>=3){
     
-            printk("usb reset 3 times,usb host must be err,reset usb");
+            LOG_ERR("usb reset 3 times,usb host must be err,reset usb");
             HAL_RESET_SoftReset();
    
             priv->usb_enum_err=0;
@@ -1471,13 +1470,27 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
 {
     struct udc_ft_msg msg = {0};
     struct udc_ft_data *priv = udc_get_private(dev);
+    bool is_interrupt_ep = (USB_EP_TYPE_INTERRUPT == ep_cfg->attributes);
 
     udc_ft_hal_lock(dev);
 
+    
+
+    if (is_interrupt_ep)
+    {
+        if (udc_buf_peek(ep_cfg) != NULL)
+        {
+            LOG_ERR("endpoint buf check err!!!,buf->len=%d,ep=%x,halt=%d\n", buf->len, ep_cfg->addr,
+                    ep_cfg->stat.halted);
+            ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, -ECONNREFUSED);
+        }
+    }
+
+
     udc_buf_put(ep_cfg, buf);
 
-    //printk("%p enqueue [%p:%p] halted:%u, ep:%x, len:%x\n", dev, buf, ep_cfg, ep_cfg->stat.halted, ep_cfg->addr,
-    //        buf->len);
+    LOG_DBG("%p enqueue [%p:%p] halted:%u, ep:%x, len:%x\n", dev, buf, ep_cfg, ep_cfg->stat.halted, ep_cfg->addr,
+            buf->len);
 
     /*If the net_buf addresses do not match, it indicates that the previous interrupt transfer data failed to be
       transmitted. Perform a reset on the interrupt endpoint's net_buf.*/
@@ -1491,7 +1504,7 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
             //msg.type = FT_UDC_MSG_TYPE_STATUS_IN;
             //msg.xfer.ep = USB_CONTROL_EP_IN;
             //ft_udc_send_msg(dev, &msg);
-            printk("CONTROL_EP0\n");
+            LOG_DBG("CONTROL_EP0\n");
             if(priv->setup_action==USB_SREQ_SET_ADDRESS){
                 priv->setup_action=0;
                 buf = udc_buf_get(ep_cfg);
@@ -1514,6 +1527,8 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
         msg.xfer.ep = ep_cfg->addr;
         ft_udc_send_msg(dev, &msg);
     }
+
+    
 
     udc_ft_hal_unlock(dev);
     return 0;
