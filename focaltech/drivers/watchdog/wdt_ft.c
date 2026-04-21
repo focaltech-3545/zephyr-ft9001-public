@@ -116,6 +116,9 @@ static int wdt_ft_install_timeout(const struct device *dev, const struct wdt_tim
         Wdt_SetCnt(cfg->base, (ticks / divider));
     }
 
+
+    Wdt_EnableFunc(cfg->base);
+
     return 0;
 }
 
@@ -170,6 +173,9 @@ static int wdt_ft_init(const struct device *dev)
     {
         return ret;
     }
+
+    Wdt_DisableFunc(cfg->base);
+
 
     return ret;
 }
