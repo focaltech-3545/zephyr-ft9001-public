@@ -117,7 +117,7 @@ static int otp_ft_program(const struct device *dev, off_t offset,
     return -1;
   }
 
-  if (offset + len > sizeof((struct ft_config_page *)0)->reserved_data3) {
+  if (offset + len > sizeof((struct ft_config_page *)0)->reserved_data2) {
     LOG_ERR("otp out range");
     return -2;
   }
@@ -125,7 +125,7 @@ static int otp_ft_program(const struct device *dev, off_t offset,
   volatile uint32_t *otp_addr =
       (volatile unsigned int *)(base + OTP_CONFIG_OFFSET + offset +
                                 offsetof(struct ft_config_page,
-                                         reserved_data3));
+                                         reserved_data2));
   printk("otp_addr=%p,offset=%ld\n", otp_addr, offset);
 
   otp_ft_lock();
@@ -158,7 +158,7 @@ static int otp_ft_read(const struct device *dev, off_t offset, void *buf,
   volatile uint32_t *otp_addr =
       (volatile unsigned int *)(base + OTP_CONFIG_OFFSET + offset +
                                 offsetof(struct ft_config_page,
-                                         reserved_data3));
+                                         reserved_data2));
 
   uint32_t *out = (uint32_t *)buf;
 
@@ -174,7 +174,7 @@ static int otp_ft_read(const struct device *dev, off_t offset, void *buf,
     return -1;
   }
 
-  if (offset + len > sizeof((struct ft_config_page *)0)->reserved_data3) {
+  if (offset + len > sizeof((struct ft_config_page *)0)->reserved_data2) {
     LOG_ERR("otp out range");
     return -2;
   }
