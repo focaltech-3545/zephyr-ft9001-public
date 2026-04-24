@@ -17,10 +17,10 @@ typedef struct {
   __IO uint32_t OTPPTIMER;  /**< 1C */
 } OTP_TypeDef;
 
-struct ft_config_page {
+struct ft_otp_layout {
   uint8_t reserved_data[400];
-  uint8_t reserved_data2[100];   /* otp data */
-  uint8_t reserved_data3[12];
+  uint8_t user_data[100];   /* for user use */
+  uint8_t reserved_data2[12];
 } __attribute__((packed));
 
 #define OTP_CONFIG_OFFSET (0x100)
