@@ -13,7 +13,6 @@
 
 #include "otp_ft.h"
 
-#define OTP_USER_ADDR(str, num) str##num
 #define DT_DRV_COMPAT ft_ft90_otp
 
 LOG_MODULE_REGISTER(otp_ft);
@@ -23,7 +22,8 @@ LOG_MODULE_REGISTER(otp_ft);
 static K_MUTEX_DEFINE(lock);
 
 struct ft_otp_config {
-  uint8_t*base;
+  OTP_TypeDef *ctrl_base;
+  uint8_t *otp_base;
 };
 
 static inline void otp_ft_lock(void) {
@@ -40,10 +40,12 @@ static inline void otp_ft_unlock(void) {
 
 #if defined(CONFIG_OTP_PROGRAM)
 
-static int ft_opt_program(volatile uint32_t *otp_addr, const void *buf) {
+static int ft_opt_program(const struct device *dev, volatile uint32_t *otp_addr, const void *buf) {
   unsigned int reg_tmp, write_data;
   unsigned int ahb3_clk = ft_get_ahb3_clk();
 
+  const struct ft_otp_config *config = dev->config;
+  OTP_TypeDef *ctrl_base = config->ctrl_base;
 
   if (!buf) {
     LOG_ERR("buf is null");
@@ -54,7 +56,7 @@ static int ft_opt_program(volatile uint32_t *otp_addr, const void *buf) {
 
   // OPT clock
   // to calculate related parameter according to otp module clock
-  OTP->OTPTIMBASE =
+  ctrl_base->OTPTIMBASE =
       ((ahb3_clk / 1000) + (1000 - 1)) / 1000; // OTP->OTPTIMBASE = clk_cnt_1us;
 
   if (0xFFFFFFFF != *(volatile unsigned int *)(otp_addr)) {
@@ -63,32 +65,32 @@ static int ft_opt_program(volatile uint32_t *otp_addr, const void *buf) {
   }
 
   // enable otp write
-  OTP->OTPAPR = 0x9786ac03; // otp write enable.
+  ctrl_base->OTPAPR = 0x9786ac03; // otp write enable.
 
   // write data to otp
   __asm("CPSID I");
 
-  reg_tmp = OTP->OTPCR | 0x00B7A500;
+  reg_tmp = ctrl_base->OTPCR | 0x00B7A500;
 
-  OTP->OTPCR = reg_tmp & ~0x08000000; // switch to main cell.
+  ctrl_base->OTPCR = reg_tmp & ~0x08000000; // switch to main cell.
 
-  OTP->OTPCMD = 0x00008003;
+  ctrl_base->OTPCMD = 0x00008003;
   (*(volatile unsigned int *)(otp_addr)) = write_data;
-  while (!(OTP->OTPSTAT & 0x00008000))
+  while (!(ctrl_base->OTPSTAT & 0x00008000))
     ;
 
-  OTP->OTPCR = reg_tmp | 0x08000000; // switch to redundancy cell.
+  ctrl_base->OTPCR = reg_tmp | 0x08000000; // switch to redundancy cell.
 
-  OTP->OTPCMD = 0x00008003;
+  ctrl_base->OTPCMD = 0x00008003;
   (*(volatile unsigned int *)(otp_addr)) = write_data;
-  while (!(OTP->OTPSTAT & 0x00008000))
+  while (!(ctrl_base->OTPSTAT & 0x00008000))
     ;
 
-  OTP->OTPCR = reg_tmp & ~0x08000000; // switch to main cell.
+  ctrl_base->OTPCR = reg_tmp & ~0x08000000; // switch to main cell.
 
   __asm("CPSIE I");
 
-  OTP->OTPAPR = 0x9786ac01; // otp write disable.
+  ctrl_base->OTPAPR = 0x9786ac01; // otp write disable.
 
   // OPT data double check
   if (write_data == *(volatile unsigned int *)(otp_addr)) {
@@ -104,8 +106,7 @@ static int otp_ft_program(const struct device *dev, off_t offset,
   int ret = 0, i;
 
   const struct ft_otp_config *config = dev->config;
-  uint8_t* base = config->base;
-
+  uint8_t* otp_base = config->otp_base;
 
   if (len % sizeof(uint32_t) || offset % sizeof(uint32_t)) {
     LOG_ERR("notice! otp addr algin 4");
@@ -123,14 +124,14 @@ static int otp_ft_program(const struct device *dev, off_t offset,
   }
 
   volatile uint32_t *otp_addr =
-      (volatile unsigned int *)(base + OTP_CONFIG_OFFSET + offset +
+      (volatile unsigned int *)(otp_base + OTP_CONFIG_OFFSET + offset +
                                 offsetof(struct ft_otp_layout,
                                   user_data));
   printk("otp_addr=%p,offset=%ld\n", otp_addr, offset);
 
   otp_ft_lock();
   for (i = 0; i < len; i += sizeof(uint32_t)) {
-    ret = ft_opt_program(otp_addr, (uint8_t *)buf + i);
+    ret = ft_opt_program(dev, otp_addr, (uint8_t *)buf + i);
     otp_addr++;
     if (ret) {
       LOG_ERR("otp program err");
@@ -144,19 +145,18 @@ static int otp_ft_program(const struct device *dev, off_t offset,
 }
 #endif /* CONFIG_OTP_PROGRAM */
 
-
-
 static int otp_ft_read(const struct device *dev, off_t offset, void *buf,
                        size_t len) {
-  printk("%s enter,offset=%lx,len=%ld\n", __func__, offset, offset);
+  //printk("%s enter,offset=%lx,len=%ld\n", __func__, offset, offset);
 
   const struct ft_otp_config *config = dev->config;
-  uint8_t* base =(uint8_t*) config->base;
+  uint8_t* otp_base =(uint8_t*) config->otp_base;
+  OTP_TypeDef *ctrl_base = config->ctrl_base;
 
-  printk("r_otp_addr=%p,OTP=%p\n", base,OTP);
+  //printk("otp_base = %p, ctrl_base = %p\n", otp_base, ctrl_base);
 
   volatile uint32_t *otp_addr =
-      (volatile unsigned int *)(base + OTP_CONFIG_OFFSET + offset +
+      (volatile unsigned int *)(otp_base + OTP_CONFIG_OFFSET + offset +
                                 offsetof(struct ft_otp_layout,
                                   user_data));
 
@@ -185,7 +185,7 @@ static int otp_ft_read(const struct device *dev, off_t offset, void *buf,
   unsigned int ahb3_clk = ft_get_ahb3_clk();
 
   // OPT clock  to calculate related parameter according to otp module clock
-  OTP->OTPTIMBASE =
+  ctrl_base->OTPTIMBASE =
       ((ahb3_clk / 1000) + (1000 - 1)) / 1000; // OTP->OTPTIMBASE = clk_cnt_1us;
 
   for (i = 0; i < len / sizeof(uint32_t); i++) {
@@ -203,12 +203,12 @@ static DEVICE_API(otp, otp_ft_api) = {
     .program = otp_ft_program,
 #endif
     .read = otp_ft_read,
-
 };
 
 #define OTP_FT_DEVICE_DEFINE(n)                                                                                 \
   static const struct ft_otp_config ft_otp_config_##n = {                                                       \
-        .base = (uint8_t *)DT_INST_REG_ADDR(n),                                                             \
+        .ctrl_base = (OTP_TypeDef *)DT_REG_ADDR(DT_INST_PARENT(n)),                                             \
+        .otp_base = (uint8_t *)DT_INST_REG_ADDR(n),                                                             \
                                                                             };                                  \
   DEVICE_DT_INST_DEFINE(n, NULL, NULL, NULL, &ft_otp_config_##n, PRE_KERNEL_1,                                  \
                         CONFIG_OTP_INIT_PRIORITY, &otp_ft_api);

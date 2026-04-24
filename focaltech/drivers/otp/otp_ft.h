@@ -24,10 +24,7 @@ struct ft_otp_layout {
 } __attribute__((packed));
 
 #define OTP_CONFIG_OFFSET (0x100)
-#define OTP_BASE_ADDR (DT_REG_ADDR(DT_NODELABEL(efm)))
 #define OTP_ACTIVE_MAGIC 0x55aa55aa
-
-#define OTP ((OTP_TypeDef *)OTP_BASE_ADDR)
 
 uint32_t ft_get_ahb3_clk();
 
