@@ -49,7 +49,7 @@ static int ft_opt_program(const struct device *dev, volatile uint32_t *otp_addr,
 
   if (!buf) {
     LOG_ERR("buf is null");
-    return -1;
+    return -EINVAL;
   }
 
   write_data = *(uint32_t *)buf;
@@ -61,42 +61,42 @@ static int ft_opt_program(const struct device *dev, volatile uint32_t *otp_addr,
 
   if (0xFFFFFFFF != *(volatile unsigned int *)(otp_addr)) {
     LOG_ERR("otp is not empty");
-    return -1;
+    return -EACCES;
   }
 
   // enable otp write
-  ctrl_base->OTPAPR = 0x9786ac03; // otp write enable.
+  ctrl_base->OTPAPR = OTP_WRITE_EN_KEY; // otp write enable.
 
   // write data to otp
   __asm("CPSID I");
 
-  reg_tmp = ctrl_base->OTPCR | 0x00B7A500;
+  reg_tmp = ctrl_base->OTPCR | OTPCR_SWD_FEATURE_MASK;
 
-  ctrl_base->OTPCR = reg_tmp & ~0x08000000; // switch to main cell.
+  ctrl_base->OTPCR = reg_tmp & ~OTPCR_REDUNDANCY_BIT; // switch to main cell.
 
-  ctrl_base->OTPCMD = 0x00008003;
+  ctrl_base->OTPCMD = OTP_CMD_WRITE_CONFIG;
   (*(volatile unsigned int *)(otp_addr)) = write_data;
-  while (!(ctrl_base->OTPSTAT & 0x00008000))
+  while (!(ctrl_base->OTPSTAT & OTPSTAT_OP_BUSY_BIT))
     ;
 
-  ctrl_base->OTPCR = reg_tmp | 0x08000000; // switch to redundancy cell.
+  ctrl_base->OTPCR = reg_tmp | OTPCR_REDUNDANCY_BIT; // switch to redundancy cell.
 
-  ctrl_base->OTPCMD = 0x00008003;
+  ctrl_base->OTPCMD = OTP_CMD_WRITE_CONFIG;
   (*(volatile unsigned int *)(otp_addr)) = write_data;
-  while (!(ctrl_base->OTPSTAT & 0x00008000))
+  while (!(ctrl_base->OTPSTAT & OTPSTAT_OP_BUSY_BIT))
     ;
 
-  ctrl_base->OTPCR = reg_tmp & ~0x08000000; // switch to main cell.
+  ctrl_base->OTPCR = reg_tmp & ~OTPCR_REDUNDANCY_BIT; // switch to main cell.
 
   __asm("CPSIE I");
 
-  ctrl_base->OTPAPR = 0x9786ac01; // otp write disable.
+  ctrl_base->OTPAPR = OTP_WRITE_DIS_KEY; // otp write disable.
 
   // OPT data double check
   if (write_data == *(volatile unsigned int *)(otp_addr)) {
     return 0;
   } else {
-    return -1;
+    return -EIO;
   }
 }
 
@@ -110,17 +110,17 @@ static int otp_ft_program(const struct device *dev, off_t offset,
 
   if (len % sizeof(uint32_t) || offset % sizeof(uint32_t)) {
     LOG_ERR("notice! otp addr algin 4");
-    return -1;
+    return -EINVAL;
   }
 
   if (!buf) {
     LOG_ERR("buf is null");
-    return -1;
+    return -EINVAL;
   }
 
   if (offset + len > sizeof((struct ft_otp_layout *)0)->user_data) {
     LOG_ERR("otp out range");
-    return -2;
+    return -EINVAL;
   }
 
   volatile uint32_t *otp_addr =
@@ -166,17 +166,17 @@ static int otp_ft_read(const struct device *dev, off_t offset, void *buf,
 
   if (len % sizeof(uint32_t) || offset % sizeof(uint32_t)) {
     LOG_ERR("notice! otp addr algin 4");
-    return -1;
+    return -EINVAL;
   }
 
   if (!buf) {
     LOG_ERR("buf is null");
-    return -1;
+    return -EINVAL;
   }
 
   if (offset + len > sizeof((struct ft_otp_layout *)0)->user_data) {
     LOG_ERR("otp out range");
-    return -2;
+    return -EINVAL;
   }
 
   memset(buf, 0, len);
