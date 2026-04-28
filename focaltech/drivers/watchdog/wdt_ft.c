@@ -34,19 +34,13 @@ static int wdt_ft_setup(const struct device *dev, uint8_t options)
     ARG_UNUSED(dev);
     struct wdt_ft_data *wdt_datas = dev->data;
     const struct wdt_ft_config *cfg = dev->config;
-    if ((options & WDT_OPT_PAUSE_HALTED_BY_DBG) != 0U)
-    {
-        Wdt_SetMode(cfg->base, WDT_DBG);
-    }
-    else
-    {
-        wdt_datas->en_flag = false;
-        if ((options & WDT_OPT_PAUSE_IN_SLEEP) != 0U)
-        {
-            Wdt_SetMode(cfg->base, WDT_DOZE);
-        }
-    }
 
+    if ((options & WDT_OPT_PAUSE_IN_SLEEP) || (options & WDT_OPT_PAUSE_HALTED_BY_DBG)) {
+		LOG_ERR("Pause in sleep or halted by dbg is not supported");
+		return -ENOTSUP;
+	}
+
+    wdt_datas->en_flag = false;
     Wdt_EnableFunc(cfg->base);
 
     return 0;
@@ -94,7 +88,6 @@ static int wdt_ft_install_timeout(const struct device *dev, const struct wdt_tim
     struct wdt_ft_data *wdt_datas = dev->data;
     const struct wdt_ft_config *cfg = dev->config;
 
-
     if (!(wdt_datas->wmr_flag))
     {
         LOG_ERR("Can't write wmr secondly!");
@@ -115,9 +108,6 @@ static int wdt_ft_install_timeout(const struct device *dev, const struct wdt_tim
         wdt_datas->wmr_flag = false;
         Wdt_SetCnt(cfg->base, (ticks / divider));
     }
-
-
-    Wdt_EnableFunc(cfg->base);
 
     return 0;
 }
@@ -173,9 +163,6 @@ static int wdt_ft_init(const struct device *dev)
     {
         return ret;
     }
-
-    Wdt_DisableFunc(cfg->base);
-
 
     return ret;
 }
