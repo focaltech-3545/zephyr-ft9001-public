@@ -17,29 +17,20 @@ typedef struct {
   __IO uint32_t OTPPTIMER;  /**< 1C */
 } OTP_TypeDef;
 
-struct ft_config_page {
-  uint32_t code_valid_control_word; /* 0x3AEC3721 for valid code */
-  uint8_t reserved_04_18[0x14];
-  uint32_t config_page_verification_enable; /* 0x904E3C21 for valid code */
-  uint8_t reserved_data1[0x4];
-  uint32_t code_start_address;
-  uint32_t code_length;
-  uint8_t code_reserved[16];
-  uint8_t reserved_data2[8];
-  uint8_t code_sig[256];        /* RSA2048 code signature */
-  uint8_t config_page_hash[32]; /* SHA256 of the config page */
-  uint8_t spi_config[48];
-  uint8_t reserved_data3[100];   /* user data */
-  uint32_t config_page_location; /* 0x301821EF for OTP */
-  uint8_t reserved_data4[0x8];
+struct ft_otp_layout {
+  uint8_t reserved_data[400];
+  uint8_t user_data[100];   /* for user use */
+  uint8_t reserved_data2[12];
 } __attribute__((packed));
 
-//#define OTP_DATA_ADDR (0x08200000)
 #define OTP_CONFIG_OFFSET (0x100)
-#define OTP_BASE_ADDR (DT_REG_ADDR(DT_NODELABEL(efm)))
 #define OTP_ACTIVE_MAGIC 0x55aa55aa
-
-#define OTP ((OTP_TypeDef *)OTP_BASE_ADDR)
+#define OTP_WRITE_EN_KEY 0x9786AC03
+#define OTP_WRITE_DIS_KEY 0x9786AC01
+#define OTPCR_SWD_FEATURE_MASK 0x00B7A500
+#define OTPCR_REDUNDANCY_BIT 0x08000000
+#define OTP_CMD_WRITE_CONFIG 0x00008003
+#define OTPSTAT_OP_BUSY_BIT 0x00008000
 
 uint32_t ft_get_ahb3_clk();
 
