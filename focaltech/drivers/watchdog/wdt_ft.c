@@ -29,6 +29,35 @@ struct wdt_ft_data
     bool wmr_flag;
 };
 
+/**
+ * @brief clock on the watchdog (WDT) device
+ *
+ * This function enables the clock and toggles the reset line for the watchdog
+ * using configuration data provided via device tree.
+ *
+ * @param dev Pointer to the device structure
+ *
+ * @return 0 on success, negative error code on failure
+ */
+static int wdt_ft_clk_on(const struct device *dev)
+{
+    const struct wdt_ft_config *cfg = dev->config;
+    const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(rcc));
+    int ret = 0;
+    ret = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clkid);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    ret = reset_line_toggle_dt(&cfg->reset);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    return ret;
+}
+
 static int wdt_ft_setup(const struct device *dev, uint8_t options)
 {
     ARG_UNUSED(dev);
@@ -88,6 +117,11 @@ static int wdt_ft_install_timeout(const struct device *dev, const struct wdt_tim
     struct wdt_ft_data *wdt_datas = dev->data;
     const struct wdt_ft_config *cfg = dev->config;
 
+    if (wdt_ft_clk_on(dev) != 0)
+    {
+        return -EBUSY;
+    }
+
     if (!(wdt_datas->wmr_flag))
     {
         LOG_ERR("Can't write wmr secondly!");
@@ -128,6 +162,7 @@ static int wdt_ft_feed(const struct device *dev, int channel_id)
     ARG_UNUSED(channel_id);
     const struct wdt_ft_config *cfg = dev->config;
     Wdt_FeedDog(cfg->base);
+
     return 0;
 }
 
@@ -141,32 +176,13 @@ static const struct wdt_driver_api wdt_ft_api = {
 /**
  * @brief Initialize the watchdog (WDT) device
  *
- * This function enables the clock and toggles the reset line for the watchdog
- * using configuration data provided via device tree.
- *
  * @param dev Pointer to the device structure
  *
  * @return 0 on success, negative error code on failure
  */
 static int wdt_ft_init(const struct device *dev)
 {
-    const struct wdt_ft_config *cfg = dev->config;
-    const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(rcc));
-    int ret = 0;
-    ret = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clkid);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    ret = reset_line_toggle_dt(&cfg->reset);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    Wdt_DisableFunc(cfg->base);
-
-    return ret;
+    return 0;
 }
 
 static const struct wdt_ft_config wdt_cfg = {
@@ -180,4 +196,4 @@ static struct wdt_ft_data wdt_data = {
 };
 
 DEVICE_DT_INST_DEFINE(0, wdt_ft_init, NULL, &wdt_data, &wdt_cfg, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
-                      &wdt_ft_api);
+                      &wdt_ft_api);                    
