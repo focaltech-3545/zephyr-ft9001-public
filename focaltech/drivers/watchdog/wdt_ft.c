@@ -164,6 +164,8 @@ static int wdt_ft_init(const struct device *dev)
         return ret;
     }
 
+    Wdt_DisableFunc(cfg->base);
+
     return ret;
 }
 
