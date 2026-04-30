@@ -6,7 +6,6 @@ config WDT_FOCALTECH
 	default y
 	depends on WATCHDOG
 	depends on SOC_FAMILY_FOCALTECH
-	select USE_FOCALTECH_HAL_WDT 
-	select HAS_WDT_DISABLE_AT_BOOT
+	select USE_FOCALTECH_HAL_WDT
 	help
 	  This option enables the WDT driver for FOCALTECH family of processors.
