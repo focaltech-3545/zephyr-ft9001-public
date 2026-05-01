@@ -52,7 +52,7 @@ enum udc_ft_msg_type
 {
     // FT_EVT_TRANSFER
     /* EP0 INTERRUPT */
-    FT_UDC_MSG_TYPE_EP0,
+    FT_UDC_MSG_TYPE_EP0=1,
     /* OUT transaction for specific EP completed */
     FT_UDC_MSG_TYPE_OUT,
     /* IN transaction for specific EP completed */
@@ -144,6 +144,8 @@ struct udc_ft_data
 };
 
 #define DT_DRV_COMPAT ft_ft90_usb
+
+#define EP_DEDAULT_PACK_LEN 8
 
 /**
  * @brief usb clock handling
@@ -480,11 +482,12 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
             {
                 csr_l |= DEV_CSR0_SERVICE_RXPKTRDY;
             }
-            USBx->E0CSR_L = DEV_CSR0_SERVICE_RXPKTRDY;
+            USBx->E0CSR_L = csr_l;//DEV_CSR0_SERVICE_RXPKTRDY;
         #endif
     }
     else
     {
+        
         csr_l = USBx->RXCSR_L;
         // Clear sentstall and restart data toggle.
         if (csr_l & DEV_RXCSR_SENT_STALL)
@@ -496,8 +499,10 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
             // set ClrDataTog
             USBx->RXCSR_L = csr_l;
         }
-        csr_l &= ~DEV_RXCSR_RXPKTRDY;
+        csr_l &= (~DEV_RXCSR_RXPKTRDY);
         USBx->RXCSR_L = csr_l;
+
+ 
     }
     USBx->EINDEX = saved_idx;
     udc_ft_hal_unlock(dev);
@@ -522,7 +527,7 @@ static int ft_udc_xfer_out(const struct device *dev, uint8_t ep, bool strict)
     k_fifo_put(&ep_cfg->fifo, buf);
     ft_udc_xfer_out(dev, ep, true);
     return 0;
-}*/
+}
 static inline int ft_udc_reset_interrupt_ep_netbuf(const struct device *dev, struct udc_ep_config *ep_cfg, int ret)
 {
     int err = 0;
@@ -530,7 +535,7 @@ static inline int ft_udc_reset_interrupt_ep_netbuf(const struct device *dev, str
     udc_ep_cancel_queued(dev, ep_cfg);
 
     return err;
-}
+}*/
 static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // ready to send data from Host
 {
     
@@ -553,39 +558,9 @@ static int ft_udc_xfer_in(const struct device *dev, uint8_t ep, bool strict) // 
         return -EINVAL;
     }
 
-    if (is_interrupt_ep && udc_ep_is_busy(ep_cfg))
+    if (is_interrupt_ep&& udc_ep_is_busy(ep_cfg))
     {
-
-        udc_ft_hal_lock(dev);
-
-        saved_idx = USBx->EINDEX;
-        USBx->EINDEX = ep_idx;
-
-        udc_ep_set_busy(ep_cfg, false);
-        if (!(USBx->TXCSR_L & DEV_TXCSR_TXPKTRDY))
-        {
-            printk("fake busy ep,ignore\n");
-        }
-        else
-        {
-            //USBx->TXCSR_L = DEV_TXCSR_CLR_DATA_TOG;
-            //LOG_ERR("real busy,reset interrupt ep\n");
-            if(DEV_TXCSR_FIFO_NOT_EMPTY&USBx->TXCSR_L){
-
-                LOG_ERR("usb host doesn't recv interrupt data.%x",USBx->TXCSR_L);
-                //USBx->TXCSR_H|=DEV_TXCSR_FRC_DATA_TOG;
-                USBx->TXCSR_L=DEV_TXCSR_FLUSH_FIFO;
-
-                USBx->EINDEX = saved_idx;
-                udc_ft_hal_unlock(dev);
-
-                return 0;
-            }
-        }
-
-        USBx->EINDEX = saved_idx;
-
-        udc_ft_hal_unlock(dev);
+        return 0;
     }
 
     buf = udc_buf_peek(ep_cfg);
@@ -789,16 +764,22 @@ static inline int ft_udc_msg_handle_out(const struct device *dev, struct udc_ft_
         return 0;
     }
 
-    data_len = net_buf_tailroom(buf); // ready to receive data_len data
-    data_ptr = net_buf_tail(buf);
-
     udc_ft_hal_lock(dev);
 
     saved_idx = USBx->EINDEX;
-    ;
+    
     USBx->EINDEX = ep_idx;
     read_count = USBx->RXCOUNTR;
-    LOG_INF("EP :%x, space:%x, read_count:%x", ep_idx, data_len, read_count);
+
+    
+
+    if(read_count==0){
+        read_count=msg->setup.packet[6]|(msg->setup.packet[7]<<8);
+        printk("use read cnt from INT=%d\n",read_count);
+    }
+
+    data_len = net_buf_tailroom(buf); // ready to receive data_len data
+    data_ptr = net_buf_tail(buf);
     data_len = MIN(data_len, read_count);
 
     fifo_ptr = udc_ft_get_fifo_ptr(USBx, ep_idx);
@@ -808,12 +789,13 @@ static inline int ft_udc_msg_handle_out(const struct device *dev, struct udc_ft_
     udc_ft_read_packet(fifo_ptr, data_ptr, data_len);
 
 
-
 #endif /*CONFIG_UDC_FT_DMA*/
     USBx->EINDEX = saved_idx;
     udc_ft_hal_unlock(dev);
     net_buf_add(buf, data_len);
 
+    data_len = net_buf_tailroom(buf);
+   
     buf = udc_buf_get(ep_cfg);
     err = udc_submit_ep_event(dev, buf, 0);
     if (err < 0)
@@ -821,9 +803,12 @@ static inline int ft_udc_msg_handle_out(const struct device *dev, struct udc_ft_
         LOG_ERR("udc_submit_ep_event failed for ep=0x%02x: %d", ep, err);
         return err;
     }
+    
+
     buf = udc_buf_peek(ep_cfg);
     if (buf)
     {
+      
         ft_udc_xfer_out(dev, ep, false);
     }
     return 0;
@@ -833,6 +818,7 @@ static int ft_udc_msg_handle_in(const struct device *dev, struct udc_ft_msg *msg
 {
     struct udc_ep_config *ep_cfg;
     struct net_buf *buf;
+    struct net_buf *buf_pre=NULL;
     uint8_t ep;
     uint8_t ep_idx;
     int err;
@@ -849,6 +835,14 @@ static int ft_udc_msg_handle_in(const struct device *dev, struct udc_ft_msg *msg
 
     udc_ep_set_busy(ep_cfg, false);
     buf = udc_buf_peek(ep_cfg);
+
+    bool is_interrupt_ep = (USB_EP_TYPE_INTERRUPT == ep_cfg->attributes);
+    if(is_interrupt_ep){
+     
+        udc_ep_set_busy(ep_cfg, false);
+    }
+    
+
     if (buf == NULL)
     {
         LOG_DBG("No DATA IN request");
@@ -867,9 +861,23 @@ static int ft_udc_msg_handle_in(const struct device *dev, struct udc_ft_msg *msg
         return 0;
     }
 
+   
     buf = udc_buf_get(ep_cfg);
 
+    if(is_interrupt_ep){
+        buf_pre = udc_buf_peek(ep_cfg);
+        if(buf_pre!=NULL&&buf_pre!=buf){
+            
+            if(buf_pre->len){// need send next interrupt data
+                printk("note!has interrupt data,%p,%p,%d\n",buf_pre,buf,buf_pre->len);
+                udc_ep_set_busy(ep_cfg, false);
+                ft_udc_xfer_in(dev, ep, false);
+            }
+        }
+    }
+    
     err = udc_submit_ep_event(dev, buf, 0);
+
     if (err < 0)
     {
         LOG_ERR("udc_submit_ep_event failed for ep=0x%02x: %d", ep, err);
@@ -937,31 +945,31 @@ static int ft_udc_handle_ep0_setup(const struct device *dev,FT_USBD_Type *const 
 
                 case USB_SREQ_SET_ADDRESS:
                     priv->addr = setup->wValue;
-                    printk("SET_ADDRESS %x\n", setup->wValue);
+                    LOG_DBG("SET_ADDRESS %x\n", setup->wValue);
                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
                     priv->setup_action=USB_SREQ_SET_ADDRESS;
                     break;
 
 
                 case USB_SREQ_SET_CONFIGURATION:
-                    printk("set config\n");
+                    LOG_DBG("set config\n");
                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
                     priv->setup_action=USB_SREQ_SET_CONFIGURATION;
                     break;
                 case USB_SREQ_GET_CONFIGURATION:
                      USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND; 
-                     printk("USB_GET_CONFIGURATION\n"); 
+                     LOG_DBG("USB_GET_CONFIGURATION\n"); 
                      break; 
                 case USB_SREQ_SET_INTERFACE:
-                    printk("set interface\n");
+                    //printk("set interface\n");
                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
                     break;
                 case USB_SREQ_GET_INTERFACE:
-                    printk("get config\n");
+                    //printk("get config\n");
                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY;
                     break;
                 case USB_SREQ_GET_STATUS:
-                    printk("get status\n");
+                    //printk("get status\n");
                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
                     break;
                 case USB_SREQ_CLEAR_FEATURE:
@@ -1032,8 +1040,8 @@ static int ft_udc_msg_handle_ep0(const struct device *dev)
     //printk("ep0_st:%x\n", csr_l_hex);
     if (csr_l & DEV_CSR0_SENTSTALL)
     {
-        LOG_INF("ft_udc_msg_handle_ep0 stalled");
-        USBx->EINDEX&=~DEV_CSR0_SENTSTALL;
+        LOG_DBG("ft_udc_msg_handle_ep0 stalled");
+        USBx->E0CSR_L&=~DEV_CSR0_SENTSTALL;
     }
 
     if (csr_l & DEV_CSR0_SETUPEND)
@@ -1052,15 +1060,15 @@ static int ft_udc_msg_handle_ep0(const struct device *dev)
        
         read_count = USBx->E0COUNTR;
     
-        if (read_count != 8)
+        if (read_count != EP_DEDAULT_PACK_LEN)
         {
-                USBx->EINDEX = saved_idx;
-                udc_ft_hal_unlock(dev);
-                return 0;
+            USBx->EINDEX = saved_idx;
+            udc_ft_hal_unlock(dev);
+            return 0;
         }
         LOG_INF("RX INT Ep0 setup,count:%x ep0_st:%x", read_count, csr_l_hex);
         fifo_ptr = udc_ft_get_fifo_ptr(USBx, ep_idx);
-        udc_ft_read_packet(fifo_ptr, (uint8_t *)setup, 8);
+        udc_ft_read_packet(fifo_ptr, (uint8_t *)setup, EP_DEDAULT_PACK_LEN);
         ft_udc_handle_ep0_setup(dev,USBx);
     }
 
@@ -1117,6 +1125,7 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
 
     k_msgq_purge(priv->msgq);
     key = irq_lock();
+
     priv->enum_done = false;
     priv->setup_action=0;
     irq_unlock(key);
@@ -1146,12 +1155,16 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
     USBC_BusReset(config->base, config->speed_idx);
 
     USBC_Enbale_Irq_Ep0(config->base);
+
+
     udc_ft_hal_unlock(dev);
 
     /* UDC stack would handle bottom-half processing,
      * including reset device address (udc_set_address),
      * un-configure device (udc_ep_disable), etc.
      */
+
+    udc_submit_event(dev, UDC_EVT_RESET, 0);
 
     return 0;
 }
@@ -1317,6 +1330,8 @@ static void ft_udbd_isr(const struct device *dev)
     uint8_t usbd_intrusb;
     uint16_t usbd_inttx;
     uint16_t usbd_intrx;
+    uint8_t saved_idx;
+    uint16_t read_count;
     FT_USBD_Type *const USBx = config->base;
 
 #ifdef CONFIG_UDC_FT_DMA
@@ -1334,14 +1349,12 @@ static void ft_udbd_isr(const struct device *dev)
     {
         msg.type = FT_UDC_MSG_TYPE_CONN;
         ft_udc_send_msg(dev, &msg);
-        LOG_INF("----------------connect------------------------");
         LOG_INF("USB connect");
     }
 
     if (usbd_intrusb & USB_INTERRUPT_DISCON)
     {
         msg.type = FT_UDC_MSG_TYPE_DISCON;
-        LOG_INF("----------------disconnect------------------------");
         ft_udc_send_msg(dev, &msg);
         LOG_INF("USB disconnect");
     }
@@ -1412,9 +1425,17 @@ static void ft_udbd_isr(const struct device *dev)
     {
         if (usbd_intrx & (1 << ep_idx))
         {
+            
+            saved_idx = USBx->EINDEX;
+            USBx->EINDEX = ep_idx;
+            read_count = USBx->RXCOUNTR;
+            USBx->EINDEX=saved_idx;
             ep = ep_idx | USB_EP_DIR_OUT;
             msg.type = FT_UDC_MSG_TYPE_OUT;
             msg.out.ep = ep;
+            msg.setup.packet[6]=read_count&0xff;
+            msg.setup.packet[7]=(read_count>>8)&0xff;
+
             ft_udc_send_msg(dev, &msg);
             usbd_intrx &= ~(1 << ep_idx);
         }
@@ -1470,22 +1491,6 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
 {
     struct udc_ft_msg msg = {0};
     struct udc_ft_data *priv = udc_get_private(dev);
-    bool is_interrupt_ep = (USB_EP_TYPE_INTERRUPT == ep_cfg->attributes);
-
-    udc_ft_hal_lock(dev);
-
-    
-
-    if (is_interrupt_ep)
-    {
-        if (udc_buf_peek(ep_cfg) != NULL)
-        {
-            LOG_ERR("endpoint buf check err!!!,buf->len=%d,ep=%x,halt=%d\n", buf->len, ep_cfg->addr,
-                    ep_cfg->stat.halted);
-            ft_udc_reset_interrupt_ep_netbuf(dev, ep_cfg, -ECONNREFUSED);
-        }
-    }
-
 
     udc_buf_put(ep_cfg, buf);
 
@@ -1517,7 +1522,7 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
                 udc_submit_ep_event(dev, buf, 0);
             }
             
-            udc_ft_hal_unlock(dev);
+       
             return 0;
         }
     }
@@ -1530,7 +1535,7 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
 
     
 
-    udc_ft_hal_unlock(dev);
+ 
     return 0;
 }
 
@@ -1544,7 +1549,7 @@ static int udc_ft_ep_enqueue(const struct device *dev, struct udc_ep_config *con
 static int udc_ft_ep_dequeue(const struct device *dev, struct udc_ep_config *const ep_cfg)
 {
     const struct udc_ft_config *config = dev->config;
-    LOG_INF("Deque:%x", ep_cfg->addr);
+    LOG_DBG("Deque:%x\n", ep_cfg->addr);
     udc_ft_hal_lock(dev);
     USBC_EpxReset(config->base, ep_cfg->addr);
     udc_ft_hal_unlock(dev);
@@ -1567,16 +1572,10 @@ static int udc_ft_ep_enable(const struct device *dev, struct udc_ep_config *cons
     const struct udc_ft_config *config = dev->config;
     int status;
     FT_USBD_Type *const USBx = config->base;
-    uint8_t saved_idx = USBx->EINDEX;
 
     udc_ft_hal_lock(dev);
-    LOG_DBG("Enable ep 0x%02x\n", ep_cfg->addr);
-    // ep_cfg->stat.enabled = true;
-
-    USBx->EINDEX = USB_EP_GET_IDX(ep_cfg->addr);
-    
-
-    USBx->EINDEX = saved_idx;
+    //printk("Enable ep 0x%02x\n", ep_cfg->addr);
+    ep_cfg->stat.enabled = true;
     status = USBC_EpxOpen(config->base, ep_cfg->addr, ep_cfg->mps, ep_cfg->attributes, config->speed_idx);
     udc_ft_hal_unlock(dev);
     if (status)
@@ -1596,9 +1595,9 @@ static int udc_ft_ep_disable(const struct device *dev, struct udc_ep_config *con
     const struct udc_ft_config *config = dev->config;
     int status = 0;
 
-    LOG_DBG("Disalbe ep 0x%02x", ep_cfg->addr);
+    LOG_DBG("Disalbe ep 0x%02x\n", ep_cfg->addr);
     udc_ft_hal_lock(dev);
-    // ep_cfg->stat.enabled = false;
+    ep_cfg->stat.enabled = false;
     status = USBC_EpxClose(config->base, ep_cfg->addr);
     udc_ft_hal_unlock(dev);
     if (status)
@@ -1618,7 +1617,7 @@ static int udc_ft_ep_set_halt(const struct device *dev, struct udc_ep_config *co
         LOG_INF("ep 0x%02x is already as halt", ep_cfg->addr);
         return 0;
     }
-    LOG_DBG("Set halt ep 0x%02x", ep_cfg->addr);
+    LOG_DBG("Set halt ep 0x%02x\n", ep_cfg->addr);
     udc_ft_hal_lock(dev);
     // HW set ep stall
     if (ep_cfg->addr == USB_CONTROL_EP_OUT || ep_cfg->addr == USB_CONTROL_EP_IN)
@@ -1644,7 +1643,7 @@ static int udc_ft_ep_clear_halt(const struct device *dev, struct udc_ep_config *
     const struct udc_ft_config *config = dev->config;
     struct udc_ft_msg xfer_msg = {0};
 
-    LOG_INF("Clear halt ep 0x%02x", ep_cfg->addr);
+    LOG_DBG("Clear halt ep 0x%02x", ep_cfg->addr);
     udc_ft_hal_lock(dev);
     if (ep_cfg->addr == USB_CONTROL_EP_OUT || ep_cfg->addr == USB_CONTROL_EP_IN)
     {
@@ -1697,7 +1696,7 @@ static int udc_ft_set_address(const struct device *dev, const uint8_t addr)
      * the Set Address one will be overwritten without a trace.
      */
 
-    printk("Set new address %u for %p", addr, dev);
+    //printk("Set new address %u for %p", addr, dev);
     priv->addr = addr;
 
     if(addr){
@@ -1773,7 +1772,9 @@ static int udc_ft_enable(const struct device *dev)
     }
 
     /*enable ep0 interupt*/
+    udc_ft_hal_lock(dev);
     USBC_Enbale_Irq_Ep0(config->base);
+    udc_ft_hal_unlock(dev);
 
     return 0;
 }
