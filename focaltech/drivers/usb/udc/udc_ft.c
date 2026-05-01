@@ -1571,7 +1571,7 @@ static int udc_ft_ep_enable(const struct device *dev, struct udc_ep_config *cons
 {
     const struct udc_ft_config *config = dev->config;
     int status;
-    FT_USBD_Type *const USBx = config->base;
+
 
     udc_ft_hal_lock(dev);
     //printk("Enable ep 0x%02x\n", ep_cfg->addr);
