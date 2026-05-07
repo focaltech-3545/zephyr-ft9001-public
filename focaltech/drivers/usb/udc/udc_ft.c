@@ -869,7 +869,7 @@ static int ft_udc_msg_handle_in(const struct device *dev, struct udc_ft_msg *msg
         if(buf_pre!=NULL&&buf_pre!=buf){
             
             if(buf_pre->len){// need send next interrupt data
-                printk("note!has interrupt data,%p,%p,%d\n",buf_pre,buf,buf_pre->len);
+                LOG_INF("note!has interrupt data,%p,%p,%d\n",buf_pre,buf,buf_pre->len);
                 udc_ep_set_busy(ep_cfg, false);
                 ft_udc_xfer_in(dev, ep, false);
             }

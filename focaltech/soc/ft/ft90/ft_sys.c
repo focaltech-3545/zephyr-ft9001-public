@@ -774,7 +774,7 @@ void ft_Sys_Init(void)
     /* Initialize CACHE */
     ft_Sys_CacheInit();
 
-    uart_init(2, 115200);
+    uart_init(3, 115200);
 
     close_wdt();
 
