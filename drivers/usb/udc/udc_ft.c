@@ -908,7 +908,38 @@ int ft_udc_msg_handle_xfer(const struct device *dev, struct udc_ft_msg *msg)
     return err;
 }
 
+static int ft_ep_clear_toggle(const struct device *dev,FT_USBD_Type *const USBx)
+{//clear interrupt ep only
 
+    int idx;
+    bool is_interrupt_ep=false;
+
+
+    uint8_t saved_idx;
+    for(idx=1;idx<4;idx++){
+        struct udc_ep_config *ep_cfg = udc_get_ep_cfg(dev, 0x80|idx);
+        is_interrupt_ep = (USB_EP_TYPE_INTERRUPT == ep_cfg->attributes);
+        if(is_interrupt_ep){
+            break;
+        }
+    }
+
+    if(is_interrupt_ep){
+        saved_idx = USBx->EINDEX;
+        USBx->EINDEX=idx;
+
+        uint8_t csr_l = USBx->TXCSR_L;
+         
+
+
+        USBx->TXCSR_L = csr_l|DEV_TXCSR_CLR_DATA_TOG; 
+        
+        USBx->EINDEX=saved_idx;
+      
+    }
+    
+    return 0;
+}
 
 
 static int ft_udc_handle_ep0_setup(const struct device *dev,FT_USBD_Type *const USBx) // a in packet is sent to host
@@ -975,6 +1006,7 @@ static int ft_udc_handle_ep0_setup(const struct device *dev,FT_USBD_Type *const 
                 case USB_SREQ_CLEAR_FEATURE:
                     printk("USB_CLEAR_FEATURE\n");
                     USBx->E0CSR_L=DEV_CSR0_SERVICE_RXPKTRDY|DEV_CSR0_DATAEND;
+					ft_ep_clear_toggle(dev,USBx);
                     break;
                 case USB_SREQ_SET_FEATURE:
                     printk("USB_SET_FEATURE\n");
