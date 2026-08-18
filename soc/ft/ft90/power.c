@@ -13,7 +13,7 @@
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
 #include <zephyr/pm/pm.h>
-#include <zephyr/sys_clock.h>
+#include <zephyr/sys/clock.h>
 #include <zephyr/types.h>
 
 LOG_MODULE_REGISTER(soc_power, CONFIG_SOC_LOG_LEVEL);
