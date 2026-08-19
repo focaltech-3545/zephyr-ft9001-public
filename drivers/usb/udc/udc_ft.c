@@ -190,7 +190,7 @@ static void udc_ft_pm_policy_lock_put(const struct device *dev)
 
     if (atomic_test_and_clear_bit(&priv->pm_lock, 0) == 1)
     {
-    pm_device_runtime_put(dev);
+        pm_device_runtime_put(dev);
         pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_IDLE, PM_ALL_SUBSTATES);
     }
 }

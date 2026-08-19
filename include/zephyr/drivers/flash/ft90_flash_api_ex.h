@@ -76,6 +76,8 @@ struct ft_xip_ex_ops_set_in {
 	uint8_t regs[3];
 	/** Mask of status registers to change. */
 	uint8_t masks[3];
+	/** Use the volatile write. */
+	bool volatile_write;
 };
 
 /**

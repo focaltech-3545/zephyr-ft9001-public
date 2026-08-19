@@ -138,7 +138,7 @@ __attribute__((section(".ramfunc"))) __attribute__((noinline))   int flash_ft_qs
 	return 0;
 }
 
-__attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t idx, uint8_t st)
+__attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_FlashSRx(uint8_t idx, uint8_t st, bool volatile_write)
 {
     volatile SSI_TypeDef *SSI=(SSI_TypeDef *)0x13000000;
 
@@ -186,8 +186,13 @@ __attribute__((section(".ramfunc"))) __attribute__((noinline))   uint8_t wr_Flas
         goto exit;
     }
 
-    SSI->DR=0x06;
+    if (volatile_write) {
+        SSI->DR=0x50; /* for Volatile SR Write Enable */
+    } else {
+        SSI->DR=0x06; /* for Non-Volatile SR Write Enable */
+    }
     
+	FT_NOP();
 	FT_NOP();
     while(SSI->SR&0x01);
 
@@ -617,7 +622,7 @@ static int flash_ft90_init(const struct device *dev)
 
 #if defined(CONFIG_FLASH_EX_OP_ENABLED)
 
-static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask)
+static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask, bool volatile_write)
 {
     uint8_t sr_curr;
 	uint8_t sr_new;
@@ -626,7 +631,7 @@ static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask)
 		return;
 	}
 	
-    sr_curr = wr_FlashSRx(idx, 0x80);
+    sr_curr = wr_FlashSRx(idx, 0x80, volatile_write);
     //printk("--sr_curr:0x%02x\n", sr_curr);
     sr_new = (sr_curr & ~mask) | reg;
     //printk("--sr_new:0x%02x\n", sr_new);
@@ -644,13 +649,13 @@ static void flash_write_sr(uint8_t idx, uint8_t reg, uint8_t mask)
 
     if (sr_new != sr_curr)
     {
-        wr_FlashSRx(idx, sr_new);
+        wr_FlashSRx(idx, sr_new, volatile_write);
     }
 }
 
 static uint8_t flash_read_sr(uint8_t idx)
 {
-    return wr_FlashSRx(idx, 0x80);
+    return wr_FlashSRx(idx, 0x80, true);
 }
 
 static int flash_ft90_ex_op(const struct device *dev, uint16_t code, const uintptr_t in, void *out)
@@ -670,9 +675,9 @@ static int flash_ft90_ex_op(const struct device *dev, uint16_t code, const uintp
             return -EPERM;
         }
         //printk("--write sr:0x%02x 0x%02x 0x%02x\n", op_in->regs[0], op_in->regs[1], op_in->regs[2]);
-        flash_write_sr(SR1, op_in->regs[0], op_in->masks[0]);
-        flash_write_sr(SR2, op_in->regs[1], op_in->masks[1]);
-        flash_write_sr(SR3, op_in->regs[2], op_in->masks[2]);
+        flash_write_sr(SR1, op_in->regs[0], op_in->masks[0], op_in->volatile_write);
+        flash_write_sr(SR2, op_in->regs[1], op_in->masks[1], op_in->volatile_write);
+        flash_write_sr(SR3, op_in->regs[2], op_in->masks[2], op_in->volatile_write);
         break;
 
     case FLASH_FT_XIP_EX_OP_GET_STATUS_REGS:
