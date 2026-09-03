@@ -1206,14 +1206,12 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
 
 #ifdef CONFIG_PM
         ft_pm_enter_deep_sleep(true);
+        udc_ft_pm_policy_lock_put(dev);
 #endif
+        
     }
 
-#ifdef CONFIG_PM
 
-        udc_ft_pm_policy_lock_put(dev);
-
-#endif
     return 0;
 }
 

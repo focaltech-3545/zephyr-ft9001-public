@@ -13,6 +13,23 @@
 #include <zephyr/dt-bindings/reset/ft9001_reset.h>
 
 / {
+	cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        cpu0: cpu@0 {
+            device_type = "cpu";
+            compatible = "arm,cortex-m4f";
+            reg = <0>;
+            #address-cells = <1>;
+            #size-cells = <1>;
+            cpu-power-states = <&suspend>;
+            mpu: mpu@e000ed90 {
+                compatible = "arm,armv7m-mpu";
+                reg = <0xe000ed90 0x40>;
+            };
+        };
+    };
     power-states {
 			suspend: suspend {
 				compatible = "zephyr,power-state";

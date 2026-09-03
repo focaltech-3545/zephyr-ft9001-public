@@ -24,18 +24,27 @@ static void ft_enable_wakeup_irq_source()
 {
     //EPORT_ITConfig((EPORT_TypeDef*)DT_REG_ADDR(DT_NODELABEL(eport5)),0,1);
 }
-
+static bool enter_deepsleep_flag=false;
 void ft_pm_enter_deep_sleep(bool enable)
 {
+    if(enable){
+        enter_deepsleep_flag=true;
+    }else{
+        enter_deepsleep_flag=false;
+    }
+}
+
+static void ft_pm_enter_deep_sleep_inner(bool enable){
 
 #ifdef CONFIG_CROS_EC_RW   
-    if(enable){
+    if(enable&&enter_deepsleep_flag){
         ft_enable_wakeup_irq_source();
         SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
         ft_enter_sleep_prepare();
 
     }else{
         LP_LowpowerOut();
+        enter_deepsleep_flag=false;
     }
 #endif
 
@@ -92,7 +101,7 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
     {
 
     case PM_STATE_SUSPEND_TO_IDLE:
-
+        ft_pm_enter_deep_sleep_inner(true);
         break;
     case PM_STATE_STANDBY:
 
@@ -101,7 +110,6 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 
         break;
     default:
-        //k_cpu_idle();
         //LOG_DBG("Unsupported power state %u", state);
         break;
     }
@@ -116,9 +124,7 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
     switch (state)
     {
     case PM_STATE_SUSPEND_TO_IDLE:
-
-        //LP_LowpowerOut();
-        //printk("suspend exit\n");
+        ft_pm_enter_deep_sleep_inner(false);
 
         break;
     default:
