@@ -1143,7 +1143,6 @@ static int ft_udc_msg_handle_reset(const struct device *dev, struct udc_ft_msg *
     ft_ep_out_data_recived=0;
     irq_unlock(key);
 #ifdef CONFIG_PM
-    ft_pm_enter_deep_sleep(false);
     udc_ft_pm_policy_lock_get(dev);
 #endif
     udc_submit_event(dev, UDC_EVT_RESET, 0);
@@ -1205,7 +1204,6 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
         udc_submit_event(dev, UDC_EVT_SUSPEND, 0);
 
 #ifdef CONFIG_PM
-        ft_pm_enter_deep_sleep(true);
         udc_ft_pm_policy_lock_put(dev);
 #endif
         
@@ -1218,7 +1216,6 @@ static int ft_udc_msg_handle_suspend(const struct device *dev, struct udc_ft_msg
 static int ft_udc_msg_handle_resume(const struct device *dev, struct udc_ft_msg *msg)
 {
 #ifdef CONFIG_PM
-    ft_pm_enter_deep_sleep(false);
     udc_ft_pm_policy_lock_get(dev);
 #endif
     /* UDC stack would handle bottom-half processing */
@@ -1321,7 +1318,6 @@ static ALWAYS_INLINE void ft_thread_handler(void *const arg)
 static inline void ft_usb_resume_event(const struct device *dev)
 {
 #ifdef CONFIG_PM
-    ft_pm_enter_deep_sleep(false);
     udc_ft_pm_policy_lock_get(dev);
 #endif
     if (udc_is_suspended(dev) && udc_is_enabled(dev))

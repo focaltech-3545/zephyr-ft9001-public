@@ -20,34 +20,18 @@ LOG_MODULE_REGISTER(soc_power, CONFIG_SOC_LOG_LEVEL);
 
 static void ft_enter_sleep_prepare();
 
-static void ft_enable_wakeup_irq_source()
+static void ft_pm_enter_deep_sleep_inner(bool enable)
 {
-    //EPORT_ITConfig((EPORT_TypeDef*)DT_REG_ADDR(DT_NODELABEL(eport5)),0,1);
-}
-static bool enter_deepsleep_flag=false;
-void ft_pm_enter_deep_sleep(bool enable)
-{
-    if(enable){
-        enter_deepsleep_flag=true;
-    }else{
-        enter_deepsleep_flag=false;
-    }
-}
-
-static void ft_pm_enter_deep_sleep_inner(bool enable){
 
 #ifdef CONFIG_CROS_EC_RW   
-    if(enable&&enter_deepsleep_flag){
-        ft_enable_wakeup_irq_source();
+    if(enable){
         SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
         ft_enter_sleep_prepare();
 
     }else{
         LP_LowpowerOut();
-        enter_deepsleep_flag=false;
     }
 #endif
-
 }
 
 typedef void(*SSID_FUNC)(char);
