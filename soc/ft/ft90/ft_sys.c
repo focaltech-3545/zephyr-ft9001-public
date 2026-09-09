@@ -738,6 +738,24 @@ void ft_close_tc_reset()
     Timer_Rst_Disable((TC_TypeDef *)TC_BASE_ADDR);
 }
 
+/*  Clearing the whole PSRAM (2 MB) takes approximately 200 ms. 
+    In our case, we only clear the buffers that have been used (about 400 KB), 
+    reducing the time to roughly 40 ms.
+*/
+static void ft_clear_psram(void)
+{
+#ifdef CONFIG_CROS_EC_RW
+    extern char __PSRAM_start[];
+    extern char __PSRAM_end[];
+    size_t psram_size = __PSRAM_end - __PSRAM_start; 
+    if(psram_size){
+        memset(__PSRAM_start, 0, psram_size);
+    }
+#endif
+
+}
+
+
 void ft_Sys_Init(void)
 {
     SYS_ClkInitTypeDef clk_init;
@@ -779,6 +797,8 @@ void ft_Sys_Init(void)
     close_wdt();
 
     ft_close_tc_reset();
+
+    ft_clear_psram();
 }
 
 uint32_t ft_get_ahb3_clk()
