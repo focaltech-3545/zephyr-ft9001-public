@@ -179,7 +179,7 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 	SPIx->SPIPURD = 0x00;    //disable pullup/down
 	//tmp_data = spi_baudrate_map(config->frequency);
 	//SPIx->SPIBR = tmp_data;
-	if(config->operation & SPI_OP_MODE_SLAVE) {
+	if(config->operation & SPI_OP_MODE_PERIPHERAL) {
 		SPIx->SPIBR = 0x00;     //default div2
 		SPIx->SPIPURD = 0x01;   //pullup for spi slave port
 	}
@@ -215,7 +215,7 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 		SPIx->SPICR1 &= ~SPICR1_LSBFE_MASK;
 	}
 	
-	if(config->operation & SPI_OP_MODE_SLAVE) {
+	if(config->operation & SPI_OP_MODE_PERIPHERAL) {
 		SPIx->SPICR1 &= ~SPICR1_MSTR_MASK;
 		
 		//SPIx->SPIDDR &= ~(SPIDDR_SS_MASK | SPIDDR_SCK_MASK | SPIDDR_MOSI_MASK);  //SPI_Direction_1Line_RxOrTx
@@ -253,7 +253,7 @@ int spi_transceive_init(const struct device *dev, const struct spi_config *confi
 	SPIx->SPICR2 &= ~SPICR2_SPC0_MASK;   //SPI_LINES_SINGLE Only
 	
 	//set_fifo_threshold
-	if(config->operation & SPI_OP_MODE_SLAVE) {
+	if(config->operation & SPI_OP_MODE_PERIPHERAL) {
 		SPIx->SPITXFCR = SPITXFCR_TXFCLR_MASK | (0x07);    //tx_threshold = 7
 		SPIx->SPIRXFCR = SPIRXFCR_RXFCLR_MASK;    //tx_threshold = 0
 		SPIx->SPITXFCR &= ~SPITXFCR_TXFCLR_MASK;
@@ -388,7 +388,7 @@ static int spi_ft_shift_frames(const struct spi_ft_config *cfg, struct spi_ft_da
 {
 	uint16_t operation = data->ctx.config->operation;
 
-	if (SPI_OP_MODE_GET(operation) == SPI_OP_MODE_MASTER) {
+	if (SPI_OP_MODE_GET(operation) == SPI_OP_MODE_CONTROLLER) {
 		spi_ft_frame_shift_m(cfg, data);
 	}
 	else {
@@ -461,7 +461,7 @@ static int spi_ft_transceive_impl(const struct device *dev,
 	SPI_Enable(cfg->base);
 
 	/* cs true*/
-	if(SPI_OP_MODE_GET(config->operation) == SPI_OP_MODE_MASTER) {
+	if(SPI_OP_MODE_GET(config->operation) == SPI_OP_MODE_CONTROLLER) {
 		SPI_CSLow(cfg->base);
 	}
 	
@@ -566,7 +566,7 @@ static void spi_ft_complete(const struct device *dev, int status)
 	}
 
 	//wait till spi is not busy, all tx is send out
-	if(SPI_OP_MODE_GET(data->ctx.config->operation) == SPI_OP_MODE_MASTER) {
+	if(SPI_OP_MODE_GET(data->ctx.config->operation) == SPI_OP_MODE_CONTROLLER) {
 		SPI_TxTranserDone(cfg->base);
 		for(i=0; i<guard_time; i++) {
 			__asm("nop");
