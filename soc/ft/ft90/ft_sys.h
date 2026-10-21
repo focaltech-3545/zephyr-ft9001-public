@@ -6,6 +6,7 @@
 #ifndef _FT_SYS_H_
 #define _FT_SYS_H_
 
+#include "cpm_drv.h"
 #include "libft9001.h"
 
 struct str_flash
@@ -29,14 +30,6 @@ struct str_flash
     uint32_t Delay;
     uint32_t Timeout;
 };
-
-typedef enum
-{
-    CPM_SYSCLK_OSC8M = 0,
-    CPM_SYSCLK_OSC320M,
-    CPM_SYSCLK_USBPHY240M,
-    CPM_SYSCLK_OSCEXT
-} CPM_SysClkSelTypeDef;
 
 typedef enum
 {
@@ -79,104 +72,6 @@ typedef struct
     CPM_IpsClkDivTypeDef IpsClkDiv;
 
 } SYS_ClkInitTypeDef;
-
-#define __IO volatile /*!< Defines 'read / write' permissions              */
-
-typedef struct
-{
-    __IO uint32_t SLPCFGR; /**< 00 sleep configuration register                     */
-    __IO uint32_t SLPCR;   /**< 04 sleep control register                           */
-    __IO uint32_t SCDIVR;  /**< 08 system clock divider register                    */
-    __IO uint32_t PCDIVR1; /**< 0C speripheral clock divider register 1             */
-
-    __IO uint32_t PCDIVR2;  /**< 10 speripheral clock divider register 2             */
-    __IO uint32_t RESERVED; /**< 14 speripheral clock divider register 3             */
-    __IO uint32_t CDIVUPDR; /**< 18 clock divider update register                    */
-    __IO uint32_t CDIVENR;  /**< 1C clock divider enable register                    */
-
-    __IO uint32_t OCSR;     /**< 20 oscillator control and status register           */
-    __IO uint32_t CSWCFGR;  /**< 24 clock switch config register                     */
-    __IO uint32_t CTICKR;   /**< 28 core tick timer register                         */
-    __IO uint32_t CHIPCFGR; /**< 2C chip config register                             */
-
-    __IO uint32_t PWRCR;      /**< 30 power control register                            */
-    __IO uint32_t SLPCNTR;    /**< 34 sleep counter register                            */
-    __IO uint32_t WKPCNTR;    /**< 38 wake up counter register                          */
-    __IO uint32_t MULTICGTCR; /**< 3C multiple clock gate control register              */
-
-    __IO uint32_t SYSCGTCR;   /**< 40 system clock gate control register                */
-    __IO uint32_t AHB3CGTCR;  /**< 44 ahb3 clock gate control registe                   */
-    __IO uint32_t ARITHCGTCR; /**< 48 arith clock gate control registe                  */
-    __IO uint32_t IPSCGTCR;   /**< 4C ips clock gate control registe                    */
-
-    __IO uint32_t VCCGTRIMR; /**< 50 vcc general trim register                         */
-    __IO uint32_t VCCLTRIMR; /**< 54 vcc lv detect trim register                       */
-    __IO uint32_t VCCVTRIMR; /**< 58 vcc vref trim register                            */
-    __IO uint32_t VCCCTMR;   /**< 5C vcc core test mode register                       */
-
-    __IO uint32_t O8MTRIMR;   /**< 60 osc8mhz trim register                             */
-    __IO uint32_t RESERVED1;  /**< 64                                                   */
-    __IO uint32_t O400MTRIMR; /**< 68 osc320mhz trim register                           */
-    __IO uint32_t CARDTRIMR;  /**< 6C card ldo trim register                            */
-
-    __IO uint32_t OSCLSTIMER; /**< 70 oscl stable time register                         */
-    __IO uint32_t OSCHSTIMER; /**< 74 osch stable time register                         */
-    __IO uint32_t OSCESTIMER; /**< 78 osce stable time register                         */
-    __IO uint32_t PWRSR;      /**< 7C power status register                             */
-
-    __IO uint32_t EPORTSLPCFGR; /**< 80                                             */
-    __IO uint32_t EPORTCGTR;    /**< 84                                             */
-    __IO uint32_t EPORTRSTCR;   /**< 88                                             */
-    __IO uint32_t RTCTRIMR;     /**< 8C rtc trim register                                 */
-
-    __IO uint32_t PADWKINTCR;  /**< 90 pad wakeup interrupt control register             */
-    __IO uint32_t WKPFILTCNTR; /**< 94 wakeup filter counter register                    */
-    __IO uint32_t CARDPOCR;    /**< 98 card power on counter register                    */
-    __IO uint32_t RTCSTIMER;   /**< 9C rtc 32k stable time register                      */
-
-    __IO uint32_t MPDSLPCR;     /**< A0 memory power down sleep control register          */
-    __IO uint32_t RESERVED2[2]; /**< A4 A8                                                   */
-    __IO uint32_t MULTIRSTCR;   /**< AC multiple reset control register                   */
-
-    __IO uint32_t SYSRSTCR;    /**< B0 system reset control register                     */
-    __IO uint32_t AHB3RSTCR;   /**< B4 ahb3 reset control register                       */
-    __IO uint32_t ARITHRSTTCR; /**< B8 arith reset control register                      */
-    __IO uint32_t IPRSTCR;     /**< BC ips reset control register                        */
-
-    __IO uint32_t SLPCFGR2;     /**< C0 sleep config register 2                           */
-    __IO uint32_t RESERVED3[3]; /**< C4 C8 CC                                             */
-
-    __IO uint32_t PDNCNTR;      /**< D0 power down counter register                       */
-    __IO uint32_t PONCNTR;      /**< D4 power on counter register                         */
-    __IO uint32_t PCDIVR4;      /**< D8                           */
-    __IO uint32_t RESERVED4;    /**< DC wake up source control register                   */
-    __IO uint32_t PLLNFCCFGR;   /**< E0  NFC PLL config  register                             */
-    __IO uint32_t PLLNFCSTIMER; /**< E4 wake up source control register                   */
-
-} CPM_TypeDef;
-
-#define CPM_BASE_ADDR (0x40004000)
-#define CPM ((CPM_TypeDef *)(CPM_BASE_ADDR))
-#define CPM_VCCGTRIMR_CORE_VOLTAGE_MASK (((uint32_t)1 << 15))
-#define CPM_VCCCTMR_OVERWRITE_VCCGTRIMR_TRIM_EN (((uint32_t)1 << 23))
-#define CPM_OCSR_OSC320M_CLK_EN (((uint32_t)1 << 3))
-#define CPM_OCSR_OSC320M_STABLE (((uint32_t)1 << 11))
-#define CPM_CSWCFGR_SOC_CLK_SOURCE_MASK ((uint32_t)(0xFFFFFFFC))
-#define CPM_CSWCFGR_OSC320M_SELECT (((uint32_t)1 << 9))
-#define CPM_CDIVENR_IPS_CLK_DIV_EN (((uint32_t)1 << 0))
-#define CPM_CDIVUPDR_PERIPHERAL_DIV_UPDATE (((uint32_t)1 << 0))
-#define CPM_PCDIVR_IPS_DIV_MASK ((uint32_t)(0xFFFFFFF0))
-#define CPM_PCDIVR_IPS_DIV_SHIFT_MASK ((uint32_t)(0))
-
-extern void LIB_CPM_OscSwitch(int32_t osc_sel);
-typedef enum
-{
-    CPM_VREF_TRIM_090 = 0x10, /**< 0.90V          */
-    CPM_VREF_TRIM_105 = 0x00, /**< 1.05V          */
-    CPM_VREF_TRIM_110 = 0x01, /**< 1.10V          */
-    CPM_VREF_TRIM_115 = 0x02, /**< 1.15V          */
-    CPM_VREF_TRIM_121 = 0x03  /**< 1.21V          */
-} CPM_VrefTrimValueTypeDef;
 
 /*****************************************************************************/
 #define _bit_set(value, bit) ((value) |= (bit))
