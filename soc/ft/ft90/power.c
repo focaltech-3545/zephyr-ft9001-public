@@ -5,6 +5,7 @@
 
 #include "eport_drv.h"
 #include "lowpower_drv.h"
+#include "trng_drv.h"
 #include <core_cm4.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
