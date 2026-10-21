@@ -23,7 +23,7 @@ void DRV_CPM_SystemClkOSC320MSelect(void)
 
     data = CPM->CSWCFGR & CPM_CSWCFGR_SOC_CLK_SOURCE_MASK;
     data |= 1;
-    CPM->CSWCFGR |= data;
+    CPM->CSWCFGR = data;
     while (!(CPM->CSWCFGR & CPM_CSWCFGR_OSC320M_SELECT))
         ;
 }
@@ -35,7 +35,7 @@ void DRV_CPM_SetIpsClkDiv(uint32_t div)
 
     data = CPM->PCDIVR1 & CPM_PCDIVR_IPS_DIV_MASK;
     data |= (div << CPM_PCDIVR_IPS_DIV_SHIFT_MASK);
-    CPM->PCDIVR1 |= data;
+    CPM->PCDIVR1 = data;
     CPM->CDIVUPDR |= CPM_CDIVUPDR_PERIPHERAL_DIV_UPDATE;
 }
 
