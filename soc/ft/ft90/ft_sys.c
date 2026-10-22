@@ -129,24 +129,6 @@ static void DRV_XIP_SYSCLKSwitch(uint8_t sys_clk_div, uint16_t ssi_clk_div, uint
     xip_sys_clk_switch(&ssi_cfg);
 }
 
-static void DRV_CPM_SystemClkOSC320MSelect(void)
-{
-    _cpm_set_osc320m_clk_en;
-    while (!_cpm_get_osc320m_stable_flag)
-        ;
-
-    _cpm_set_soc_clk_osc320m_en;
-    while (!_cpm_get_osc320m_select_flag)
-        ;
-}
-
-static void DRV_CPM_SetIpsClkDiv(uint8_t div)
-{
-    _cpm_set_ips_clk_div_en;
-    _cpm_set_peripheral_ips_clk_div(div);
-    _cpm_update_peripheral_clk_div;
-}
-
 static uint32_t DRV_CPM_GetSYSClHz(void)
 {
     uint32_t clk_freq;
