@@ -32,7 +32,7 @@ struct spi_ft_config{
 	int    guard_time;
 	const struct pinctrl_dev_config *pcfg;
 #ifdef CONFIG_SPI_FOCALTECH_INTERRUPT
-	void (*irq_configure)();
+	void (*irq_configure)(void);
 #endif
 };
 
@@ -74,7 +74,7 @@ static int spi_ft_init(const struct device *dev)
 	}
 
 #ifdef CONFIG_SPI_FOCALTECH_INTERRUPT
-	cfg->irq_configure(dev);
+	cfg->irq_configure();
 #endif
 
 	spi_context_unlock_unconditionally(&data->ctx);
