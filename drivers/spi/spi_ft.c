@@ -51,10 +51,17 @@ static int spi_ft_init(const struct device *dev)
 	const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(cpm));
 	const struct spi_ft_config *cfg = dev->config;
 	struct spi_ft_data *data = dev->data;
+
+	if (!device_is_ready(clk)) {
+    	LOG_ERR("CPM device not ready!\n");
+    	return -ENODEV;
+	}
+
 	//struct pinctrl_dev_config *pcfg;
 	int ret = 0;
 	//printf("spi_ft_init addr :%x\n", cfg->base);
-	ret = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clkid);
+	
+	ret = clock_control_on(clk, UINT_TO_POINTER(cfg->clkid));
 	if (ret < 0) {
 		LOG_ERR("Could not enable SPI clock");
 		return ret;

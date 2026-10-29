@@ -22,7 +22,7 @@ static int pinctrl_init(void)
 {
     uint16_t clkid = DT_CLOCKS_CELL(DT_NODELABEL(pinctrl), id);
 
-    clock_control_on(DEVICE_DT_GET(DT_NODELABEL(cpm)), (clock_control_subsys_t)&clkid);
+    clock_control_on(DEVICE_DT_GET(DT_NODELABEL(cpm)), UINT_TO_POINTER(clkid));
     return 0;
 }
 

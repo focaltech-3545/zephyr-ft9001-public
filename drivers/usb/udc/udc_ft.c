@@ -161,14 +161,18 @@ static int udc_ft_clock_request(const struct device *dev, bool on)
 
     /* enable clock for subsystem */
     const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(cpm));
+    if (!device_is_ready(clk)) {
+        LOG_ERR("CPM device not ready!\n");
+        return -ENODEV;
+    }
 
     if (on)
     {
-        ret = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clk_src);
+        ret = clock_control_on(clk, UINT_TO_POINTER(cfg->clk_src));
     }
     else
     {
-        ret = clock_control_off(clk, (clock_control_subsys_t *)&cfg->clk_src);
+        ret = clock_control_off(clk, UINT_TO_POINTER(cfg->clk_src));
     }
 
     return ret;

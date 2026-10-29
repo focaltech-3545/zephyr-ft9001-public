@@ -71,11 +71,11 @@ static int uart_ft_pm_action(const struct device *dev, enum pm_device_action act
 
     if (action == PM_DEVICE_ACTION_RESUME)
     {
-        err = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clkid);
+        err = clock_control_on(clk, UINT_TO_POINTER(cfg->clkid));
     }
     else if (IS_ENABLED(CONFIG_PM_DEVICE) && (action == PM_DEVICE_ACTION_SUSPEND))
     {
-        err = clock_control_off(clk, (clock_control_subsys_t *)&cfg->clkid);
+        err = clock_control_off(clk, UINT_TO_POINTER(cfg->clkid));
     }
     else
     {

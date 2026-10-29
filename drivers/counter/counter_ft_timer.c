@@ -342,7 +342,7 @@ static int counter_ft_timer_init(const struct device *dev)
     const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(rcc));
     int ret = 0;
 
-    ret = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clkid);
+    ret = clock_control_on(clk, UINT_TO_POINTER(cfg->clkid));
     if (ret < 0)
     {
         LOG_ERR("TC:%p could not enable tc clock", cfg->base);

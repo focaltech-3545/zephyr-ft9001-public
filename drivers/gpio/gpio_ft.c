@@ -443,7 +443,7 @@ static int gpio_ft_pm_action(const struct device *port, enum pm_device_action ac
         const struct gpio_ft_config *config = port->config;                                                            \
         const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(cpm));                                                   \
         int ret = 0;                                                                                                   \
-        ret = clock_control_on(clk, (clock_control_subsys_t *)&config->clkid);                                         \
+        ret = clock_control_on(clk, UINT_TO_POINTER(config->clkid));                 	                               \
         if (ret < 0)                                                                                                   \
         {                                                                                                              \
             LOG_ERR("GPIO:%p could not enable gpio clock", config->base);                                              \

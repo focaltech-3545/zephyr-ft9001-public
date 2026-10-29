@@ -44,7 +44,7 @@ static int wdt_ft_clk_on(const struct device *dev)
     const struct wdt_ft_config *cfg = dev->config;
     const struct device *clk = DEVICE_DT_GET(DT_NODELABEL(cpm));
     int ret = 0;
-    ret = clock_control_on(clk, (clock_control_subsys_t *)&cfg->clkid);
+    ret = clock_control_on(clk, UINT_TO_POINTER(cfg->clkid));
     if (ret < 0)
     {
         return ret;
