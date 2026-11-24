@@ -139,7 +139,7 @@ static int uart_ft_init(const struct device *dev)
     const struct uart_ft_data *data = DEV_DATA(dev);
     int ret = 0;
 
-    ret = clock_control_on(clk, (clock_control_subsys_t *)&config->clkid);
+    ret = clock_control_on(clk, (UINT_TO_POINTER)config->clkid);
     if (ret < 0)
     {
         LOG_ERR("Could not enable UART clock");
